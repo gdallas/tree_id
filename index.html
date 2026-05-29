@@ -8,19 +8,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,500&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --paper:#f4efe2; --paper-2:#ece4d2; --ink:#23311f; --ink-soft:#566049;
-    --forest:#2f5d3a; --forest-deep:#1f3f28; --leaf:#5b8c4a; --leaf-bright:#7cae54;
-    --terracotta:#c2683f; --terracotta-deep:#a4502c; --gold:#d8a23a;
-    --correct:#3f7e44; --wrong:#b0472f; --line:#cfc4ab; --shadow:rgba(35,49,31,.18); --r:18px;
-  }
+  :root{--paper:#f4efe2;--paper-2:#ece4d2;--ink:#23311f;--ink-soft:#566049;--forest:#2f5d3a;--forest-deep:#1f3f28;--leaf:#5b8c4a;--leaf-bright:#7cae54;--terracotta:#c2683f;--terracotta-deep:#a4502c;--gold:#d8a23a;--correct:#3f7e44;--wrong:#b0472f;--line:#cfc4ab;--shadow:rgba(35,49,31,.18);--r:18px;}
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   html,body{height:100%}
-  body{font-family:'Hanken Grotesk',sans-serif;color:var(--ink);
-    background:radial-gradient(circle at 12% -10%, #fbf7ec 0%, transparent 55%),radial-gradient(circle at 95% 5%, #efe7d3 0%, transparent 45%),var(--paper);
-    background-attachment:fixed;min-height:100%;position:relative;overflow-x:hidden}
-  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E")}
+  body{font-family:'Hanken Grotesk',sans-serif;color:var(--ink);background:radial-gradient(circle at 12% -10%, #fbf7ec 0%, transparent 55%),radial-gradient(circle at 95% 5%, #efe7d3 0%, transparent 45%),var(--paper);background-attachment:fixed;min-height:100%;position:relative;overflow-x:hidden}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E")}
   .wrap{position:relative;z-index:1;max-width:680px;margin:0 auto;padding:18px 16px 40px;min-height:100vh;display:flex;flex-direction:column}
   .screen{display:none;flex-direction:column;flex:1}
   .screen.active{display:flex}
@@ -32,23 +24,13 @@
   .center .brand{flex-direction:column;gap:8px}
   .center .brand .mark{width:60px;height:60px}
   .center .brand h1{font-size:40px}
-  .panel{width:100%;max-width:380px;background:#fbf8ef;border:1.5px solid var(--line);border-radius:var(--r);
-    box-shadow:0 10px 30px -12px var(--shadow),0 2px 0 var(--line);padding:22px 20px;display:flex;flex-direction:column;gap:14px}
-  .gbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;background:#fff;border:1.5px solid var(--line);
-    border-radius:13px;padding:13px;font-family:'Hanken Grotesk',sans-serif;font-weight:700;font-size:15px;color:#3c4043;cursor:pointer;box-shadow:0 2px 0 var(--line);transition:transform .1s ease}
+  .panel{width:100%;max-width:380px;background:#fbf8ef;border:1.5px solid var(--line);border-radius:var(--r);box-shadow:0 10px 30px -12px var(--shadow),0 2px 0 var(--line);padding:22px 20px;display:flex;flex-direction:column;gap:14px}
+  .gbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;background:#fff;border:1.5px solid var(--line);border-radius:13px;padding:13px;font-family:'Hanken Grotesk',sans-serif;font-weight:700;font-size:15px;color:#3c4043;cursor:pointer;box-shadow:0 2px 0 var(--line);transition:transform .1s ease}
   .gbtn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--line)}
   .gbtn svg{width:18px;height:18px;flex:none}
   .divider{display:flex;align-items:center;gap:10px;color:var(--ink-soft);font-size:12px;font-weight:600}
   .divider::before,.divider::after{content:"";height:1px;background:var(--line);flex:1}
-  .tabs{display:flex;background:var(--paper-2);border-radius:12px;padding:4px;gap:4px}
-  .tabs button{flex:1;border:none;background:none;font-family:'Hanken Grotesk',sans-serif;font-weight:700;font-size:14px;padding:9px;border-radius:9px;cursor:pointer;color:var(--ink-soft)}
-  .tabs button.on{background:#fff;color:var(--forest);box-shadow:0 1px 3px rgba(0,0,0,.08)}
-  .field{text-align:left}
-  .field label{display:block;font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--ink-soft);margin-bottom:5px}
-  .field input{width:100%;font-family:'Hanken Grotesk',sans-serif;font-size:16px;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);outline:none}
-  .field input:focus{border-color:var(--leaf)}
-  .btn-primary{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:16px;color:#fff;background:linear-gradient(180deg,var(--leaf-bright),var(--forest));
-    border:none;border-radius:13px;padding:14px;cursor:pointer;box-shadow:0 4px 0 var(--forest-deep);transition:transform .1s ease}
+  .btn-primary{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:16px;color:#fff;background:linear-gradient(180deg,var(--leaf-bright),var(--forest));border:none;border-radius:13px;padding:14px;cursor:pointer;box-shadow:0 4px 0 var(--forest-deep);transition:transform .1s ease}
   .btn-primary:active{transform:translateY(2px);box-shadow:0 2px 0 var(--forest-deep)}
   .auth-msg{font-size:13.5px;font-weight:600;min-height:18px}
   .auth-msg.err{color:var(--wrong)} .auth-msg.ok{color:var(--correct)}
@@ -149,18 +131,16 @@
 <body>
 <div class="wrap">
 
-  <!-- SETUP (shown only if config.js not filled in) -->
   <section id="setupScreen" class="screen">
     <div class="center">
       <div class="brand"><div><h1>Sprout</h1><div class="sub">Setup needed</div></div></div>
       <div class="panel setup">
-        <p><b>Almost there.</b> Open <code>config.js</code> and paste your Supabase project URL and anon key, then redeploy.</p>
-        <p>Full step-by-step instructions are in <code>README.md</code> (creating the Supabase project, the database table, and Google sign-in).</p>
+        <p><b>Almost there.</b> Open <code>config.js</code> and paste your AWS values (Cognito domain, app client ID, API URL, and the site URL), then re-upload to S3.</p>
+        <p>The full step-by-step AWS walkthrough is in <code>README.md</code>.</p>
       </div>
     </div>
   </section>
 
-  <!-- AUTH -->
   <section id="authScreen" class="screen">
     <div class="center">
       <div class="brand">
@@ -176,21 +156,14 @@
           <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
           Continue with Google
         </button>
-        <div class="divider">or with email</div>
-        <div class="tabs">
-          <button id="tabLogin" class="on">Log in</button>
-          <button id="tabSignup">Sign up</button>
-        </div>
-        <div class="field"><label for="uEmail">Email</label><input id="uEmail" type="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="you@example.com" /></div>
-        <div class="field"><label for="uPass">Password</label><input id="uPass" type="password" autocomplete="current-password" placeholder="••••••" /></div>
+        <div class="divider">or</div>
+        <button class="btn-primary" id="emailBtn">Sign in / Sign up with email</button>
         <div class="auth-msg" id="authMsg"></div>
-        <button class="btn-primary" id="authSubmit">Log in</button>
       </div>
-      <p class="fine">Your progress is stored in the cloud, so it follows you across phone and laptop. Sign in with the same account anywhere.</p>
+      <p class="fine">You'll be taken to a secure AWS sign-in page. Your progress is stored in the cloud, so it follows you across phone and laptop.</p>
     </div>
   </section>
 
-  <!-- CATEGORY -->
   <section id="categoryScreen" class="screen">
     <div class="center">
       <div class="brand" style="flex-direction:row;gap:10px">
@@ -212,7 +185,6 @@
     </div>
   </section>
 
-  <!-- GAME -->
   <section id="gameScreen" class="screen">
     <header>
       <div class="brand">
@@ -249,10 +221,7 @@
         <div class="options" id="options"></div>
       </div>
       <div class="feedback" id="feedback"></div>
-      <div class="err" id="errBox">
-        <p id="errMsg">Couldn't reach iNaturalist. Check your connection.</p>
-        <button id="retry">Try again</button>
-      </div>
+      <div class="err" id="errBox"><p id="errMsg">Couldn't reach iNaturalist. Check your connection.</p><button id="retry">Try again</button></div>
     </div>
     <div class="footer-note">Photos &amp; species data from <a href="https://www.inaturalist.org" target="_blank" rel="noopener">iNaturalist</a>. Notes from Wikipedia.</div>
   </section>
@@ -279,104 +248,113 @@
 <div class="toast" id="toast"><span>🌱</span><span id="toastMsg">A new tree grew!</span></div>
 
 <script src="config.js"></script>
-<script type="module">
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const API="https://api.inaturalist.org/v1";
+<script>
+/* ============================================================
+   Sprout (AWS edition) — pure client-side, no SDK.
+   Auth:  Amazon Cognito managed login, OAuth2 code + PKCE.
+   Data:  API Gateway (HTTP API) + Lambda + DynamoDB.
+   Photos/species: iNaturalist.  Notes: Wikipedia.
+   ============================================================ */
+const API_INAT="https://api.inaturalist.org/v1";
 const PNW={swlat:42.0,swlng:-139.5,nelat:60.0,nelng:-114.0};
-const TREE_TAXA=[
-  {q:"Pinaceae",rank:"family"},{q:"Cupressaceae",rank:"family"},{q:"Taxaceae",rank:"family"},
-  {q:"Acer",rank:"genus"},{q:"Quercus",rank:"genus"},{q:"Alnus",rank:"genus"},
-  {q:"Betula",rank:"genus"},{q:"Populus",rank:"genus"},{q:"Arbutus",rank:"genus"},
-  {q:"Fraxinus",rank:"genus"},{q:"Salix",rank:"genus"},{q:"Prunus",rank:"genus"},{q:"Cornus",rank:"genus"}
-];
+const TREE_TAXA=[{q:"Pinaceae",rank:"family"},{q:"Cupressaceae",rank:"family"},{q:"Taxaceae",rank:"family"},{q:"Acer",rank:"genus"},{q:"Quercus",rank:"genus"},{q:"Alnus",rank:"genus"},{q:"Betula",rank:"genus"},{q:"Populus",rank:"genus"},{q:"Arbutus",rank:"genus"},{q:"Fraxinus",rank:"genus"},{q:"Salix",rank:"genus"},{q:"Prunus",rank:"genus"},{q:"Cornus",rank:"genus"}];
 const $=s=>document.querySelector(s);
 const hide=s=>{$(s).style.display="none";};
 const show=(s,d="block")=>{$(s).style.display=d;};
 
-/* ---------- config / supabase ---------- */
 const cfg=window.SPROUT_CONFIG||{};
-const configured = cfg.SUPABASE_URL && cfg.SUPABASE_ANON_KEY
-  && !/YOUR-PROJECT|YOUR-ANON|paste/i.test(cfg.SUPABASE_URL+cfg.SUPABASE_ANON_KEY);
-let supabase=null;
+const configured = cfg.CLIENT_ID && cfg.COGNITO_DOMAIN && cfg.API_BASE && cfg.REDIRECT_URI
+  && !/xxxx|XXXX|YOUR-/.test(cfg.CLIENT_ID+cfg.COGNITO_DOMAIN+cfg.API_BASE+cfg.REDIRECT_URI);
 
 let session={user:null,displayName:"",category:"both"};
 let state=blankStats();
 function blankStats(){return {score:0,correct:0,attempts:0,streak:0,bestStreak:0};}
+function toRow(s){return {score:s.score,correct:s.correct,attempts:s.attempts,streak:s.streak,bestStreak:s.bestStreak,lastCategory:session.category};}
 
-/* ---------- screen routing ---------- */
 function showScreen(id){["setupScreen","authScreen","categoryScreen","gameScreen"].forEach(s=>$("#"+s).classList.toggle("active",s===id));}
 
-/* ---------- progress in DB ---------- */
-function toRow(s){return {score:s.score,correct:s.correct,attempts:s.attempts,streak:s.streak,best_streak:s.bestStreak};}
-async function loadProgress(uid){
-  try{
-    const {data,error}=await supabase.from('progress').select('*').eq('user_id',uid).maybeSingle();
-    if(error) throw error;
-    if(data){
-      state={score:data.score||0,correct:data.correct||0,attempts:data.attempts||0,streak:data.streak||0,bestStreak:data.best_streak||0};
-      session.category=data.last_category||'both';
-    }else{
-      state=blankStats(); session.category='both';
-      await supabase.from('progress').insert({user_id:uid,...toRow(state),last_category:'both'});
-    }
-  }catch(e){ console.error("loadProgress",e); state=blankStats(); }
+/* ---------- Cognito OAuth2 (PKCE) ---------- */
+function b64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
+async function sha256(str){return await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));}
+function randStr(n){const a=new Uint8Array(n);crypto.getRandomValues(a);return b64url(a.buffer);}
+function loadTokens(){try{return JSON.parse(localStorage.getItem('sprout_tokens')||'null');}catch(e){return null;}}
+function storeTokens(t){
+  const prev=loadTokens();
+  const tokens={id_token:t.id_token,access_token:t.access_token,refresh_token:t.refresh_token||(prev&&prev.refresh_token),expires_at:Date.now()+((t.expires_in||3600)*1000)};
+  try{localStorage.setItem('sprout_tokens',JSON.stringify(tokens));}catch(e){}
+}
+function clearTokens(){try{localStorage.removeItem('sprout_tokens');}catch(e){}}
+function parseJwt(tok){try{return JSON.parse(atob(tok.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));}catch(e){return {};}}
+
+async function startLogin(idp){
+  if(!crypto.subtle){ $("#authMsg").className="auth-msg err"; $("#authMsg").textContent="Sign-in needs HTTPS. Open the CloudFront URL, not a file."; return; }
+  const verifier=randStr(48);
+  try{sessionStorage.setItem('pkce_verifier',verifier);}catch(e){}
+  const challenge=b64url(await sha256(verifier));
+  const p=new URLSearchParams({response_type:'code',client_id:cfg.CLIENT_ID,redirect_uri:cfg.REDIRECT_URI,scope:'openid email profile',code_challenge:challenge,code_challenge_method:'S256'});
+  if(idp) p.set('identity_provider',idp);
+  location.href=`https://${cfg.COGNITO_DOMAIN}/oauth2/authorize?${p.toString()}`;
+}
+async function exchangeCode(code){
+  const verifier=sessionStorage.getItem('pkce_verifier')||'';
+  const body=new URLSearchParams({grant_type:'authorization_code',client_id:cfg.CLIENT_ID,code,redirect_uri:cfg.REDIRECT_URI,code_verifier:verifier});
+  const r=await fetch(`https://${cfg.COGNITO_DOMAIN}/oauth2/token`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+  const t=await r.json();
+  if(t.error){console.error('token exchange',t);return false;}
+  storeTokens(t); return true;
+}
+async function refreshTokens(){
+  const tk=loadTokens(); if(!tk||!tk.refresh_token) return false;
+  const body=new URLSearchParams({grant_type:'refresh_token',client_id:cfg.CLIENT_ID,refresh_token:tk.refresh_token});
+  const r=await fetch(`https://${cfg.COGNITO_DOMAIN}/oauth2/token`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+  const t=await r.json(); if(t.error) return false; storeTokens(t); return true;
+}
+async function validIdToken(){
+  let tk=loadTokens(); if(!tk) return null;
+  if(Date.now() > tk.expires_at-60000){ if(!await refreshTokens()) return null; tk=loadTokens(); }
+  return tk?tk.id_token:null;
+}
+function logout(){
+  clearTokens(); signedInHandled=false;
+  location.href=`https://${cfg.COGNITO_DOMAIN}/logout?client_id=${cfg.CLIENT_ID}&logout_uri=${encodeURIComponent(cfg.REDIRECT_URI)}`;
+}
+
+/* ---------- data API ---------- */
+async function apiGet(){
+  const tok=await validIdToken(); if(!tok) throw new Error('noauth');
+  const r=await fetch(cfg.API_BASE+'/progress',{headers:{Authorization:'Bearer '+tok}});
+  if(r.status===401) throw new Error('noauth');
+  if(!r.ok) throw new Error('api');
+  return r.json();
 }
 let saveTimer=null;
 function saveState(){
-  if(!session.user||!supabase) return;
+  if(!session.user) return;
   clearTimeout(saveTimer);
   saveTimer=setTimeout(async()=>{
-    try{ await supabase.from('progress').upsert({user_id:session.user,...toRow(state),last_category:session.category,updated_at:new Date().toISOString()}); }
-    catch(e){ console.error("saveState",e); }
+    try{
+      const tok=await validIdToken(); if(!tok) return;
+      await fetch(cfg.API_BASE+'/progress',{method:'PUT',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify(toRow(state))});
+    }catch(e){console.error('saveState',e);}
   },350);
 }
-
-/* ---------- auth ---------- */
-let authMode="login", signedInHandled=false;
-function renderAuthMode(){
-  $("#tabLogin").classList.toggle("on",authMode==="login");
-  $("#tabSignup").classList.toggle("on",authMode==="signup");
-  $("#authSubmit").textContent=authMode==="login"?"Log in":"Sign up";
-  $("#uPass").setAttribute("autocomplete",authMode==="login"?"current-password":"new-password");
-  setMsg("");
-}
-function setMsg(t,ok){const m=$("#authMsg");m.textContent=t;m.className="auth-msg"+(t?(ok?" ok":" err"):"");}
-
-async function emailAuth(){
-  const email=$("#uEmail").value.trim(), pass=$("#uPass").value;
-  if(!email) return setMsg("Enter your email.");
-  if(pass.length<6) return setMsg("Password needs at least 6 characters.");
-  setMsg("…",true);
+async function loadProgress(){
   try{
-    if(authMode==="signup"){
-      const {data,error}=await supabase.auth.signUp({email,password:pass});
-      if(error) return setMsg(error.message);
-      if(data.session){ /* auto-signed in */ }
-      else setMsg("Check your email to confirm, then log in.",true);
-    }else{
-      const {error}=await supabase.auth.signInWithPassword({email,password:pass});
-      if(error) return setMsg(error.message);
-    }
-  }catch(e){ setMsg("Something went wrong — try again."); }
+    const d=await apiGet();
+    if(d && d.userId){
+      state={score:d.score||0,correct:d.correct||0,attempts:d.attempts||0,streak:d.streak||0,bestStreak:d.bestStreak||0};
+      session.category=d.lastCategory||'both';
+    }else{ state=blankStats(); session.category='both'; }
+  }catch(e){ console.error('loadProgress',e); state=blankStats(); session.category='both'; }
 }
-async function googleAuth(){
-  try{
-    await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin+window.location.pathname}});
-  }catch(e){ setMsg("Couldn't start Google sign-in."); }
-}
-async function onSignedIn(user){
-  session.user=user.id;
-  session.displayName=(user.user_metadata&&(user.user_metadata.full_name||user.user_metadata.name))||user.email||"explorer";
-  await loadProgress(user.id);
+
+let signedInHandled=false;
+async function onSignedIn(claims){
+  session.user=claims.sub;
+  session.displayName=claims.name||claims.email||"explorer";
+  await loadProgress();
   if(!signedInHandled){ signedInHandled=true; showCategory(); }
 }
-async function logout(){
-  signedInHandled=false; session.user=null;
-  try{ await supabase.auth.signOut(); }catch(e){}
-  setMsg(""); showScreen("authScreen");
-}
-
 function showCategory(){
   const n=(session.displayName||"there").split(" ")[0];
   $("#greeting").textContent=`Hi ${n} 👋`;
@@ -394,31 +372,25 @@ function startSession(cat){
 function treeCost(n){const s=[1,3,5,10,15,25,40,60,85,120];return n<=s.length?s[n-1]:s[s.length-1]+(n-s.length)*40;}
 function forestProgress(correct){let trees=0,rem=correct,n=1;while(rem>=treeCost(n)){rem-=treeCost(n);trees++;n++;if(n>5000)break;}return {trees,into:rem,nextCost:treeCost(trees+1)};}
 
-/* ---------- data pool / iNaturalist ---------- */
+/* ---------- iNaturalist pool ---------- */
 let pool=[],taxaSeen=[],maxPage=null,treeIdsCsv=null;
 async function resolveTreeTaxa(){
   if(treeIdsCsv!==null) return treeIdsCsv;
   try{const c=localStorage.getItem("sprout_treeids");if(c){treeIdsCsv=c;return c;}}catch(e){}
   const ids=[];
-  for(const t of TREE_TAXA){
-    try{const r=await fetch(`${API}/taxa?q=${encodeURIComponent(t.q)}&rank=${t.rank}&per_page=1`);const d=await r.json();if(d.results&&d.results[0])ids.push(d.results[0].id);}catch(e){}
-  }
+  for(const t of TREE_TAXA){try{const r=await fetch(`${API_INAT}/taxa?q=${encodeURIComponent(t.q)}&rank=${t.rank}&per_page=1`);const d=await r.json();if(d.results&&d.results[0])ids.push(d.results[0].id);}catch(e){}}
   treeIdsCsv=ids.join(",");
   try{localStorage.setItem("sprout_treeids",treeIdsCsv);}catch(e){}
   return treeIdsCsv;
 }
-function buildQueryBase(){
-  return `${API}/observations?quality_grade=research&photos=true&per_page=200`
-    +`&photo_license=cc0,cc-by,cc-by-nc,cc-by-sa,cc-by-nc-sa&locale=en&order_by=created_at`
-    +`&nelat=${PNW.nelat}&nelng=${PNW.nelng}&swlat=${PNW.swlat}&swlng=${PNW.swlng}`;
-}
+function buildQueryBase(){return `${API_INAT}/observations?quality_grade=research&photos=true&per_page=200&photo_license=cc0,cc-by,cc-by-nc,cc-by-sa,cc-by-nc-sa&locale=en&order_by=created_at&nelat=${PNW.nelat}&nelng=${PNW.nelng}&swlat=${PNW.swlat}&swlng=${PNW.swlng}`;}
 async function categoryFilter(){
   if(session.category==="trees"){const ids=await resolveTreeTaxa();return ids?`&taxon_id=${ids}`:`&iconic_taxa=Plantae`;}
   if(session.category==="plants"){const ids=await resolveTreeTaxa();return `&iconic_taxa=Plantae`+(ids?`&without_taxon_id=${ids}`:"");}
   return `&iconic_taxa=Plantae`;
 }
 async function fetchPool(){
-  const base=buildQueryBase(), cat=await categoryFilter();
+  const base=buildQueryBase(),cat=await categoryFilter();
   const page=maxPage===null?1:(1+Math.floor(Math.random()*maxPage));
   const res=await fetch(`${base}${cat}&page=${page}`);
   if(!res.ok) throw new Error("api");
@@ -447,7 +419,7 @@ async function nextQuestion(){
     while(taxaSeen.length<4&&guard<5){await fetchPool();guard++;}
     if(!pool.length) throw new Error("empty");
     const answer=pool.pop();
-    const used=new Set([answer.label.toLowerCase()]), distractors=[];
+    const used=new Set([answer.label.toLowerCase()]),distractors=[];
     for(const t of [...taxaSeen].sort(()=>Math.random()-0.5)){
       if(distractors.length>=3) break;
       if(t.id===answer.taxonId) continue;
@@ -471,11 +443,7 @@ function renderQuestion(){
   const cr=$("#credit");
   if(a.credit){cr.textContent="📷 "+a.credit;cr.style.display="block";}else cr.style.display="none";
   const box=$("#options");box.innerHTML="";
-  current.options.forEach(o=>{
-    const b=document.createElement("button");b.className="opt";
-    b.innerHTML=`<span class="dot"></span><span>${escapeHtml(o.label)}</span>`;
-    b.onclick=()=>choose(o,b);box.appendChild(b);
-  });
+  current.options.forEach(o=>{const b=document.createElement("button");b.className="opt";b.innerHTML=`<span class="dot"></span><span>${escapeHtml(o.label)}</span>`;b.onclick=()=>choose(o,b);box.appendChild(b);});
   show("#qbody","flex");showLoader(false);
 }
 function choose(opt,btn){
@@ -508,24 +476,19 @@ function revealFeedback(win,pts){
     <div class="tip"><h4>How to recognise it</h4><div class="wiki" id="wikiText">Looking up field notes…</div>
       <ul class="checklist"><li>🍃 Leaf shape &amp; edges</li><li>🌿 Leaf arrangement</li><li>🌸 Flowers / cones / fruit</li><li>🪵 Bark &amp; stem</li><li>📐 Overall form</li></ul></div>
     <button class="next" id="nextBtn">Next ${session.category==="trees"?"tree":"plant"} →</button>`;
-  show("#feedback","flex");
-  $("#nextBtn").onclick=nextQuestion;
-  loadTaxonDetail(a.taxonId);
+  show("#feedback","flex"); $("#nextBtn").onclick=nextQuestion; loadTaxonDetail(a.taxonId);
 }
 async function loadTaxonDetail(id){
   try{
-    const r=await fetch(`${API}/taxa/${id}`);const d=await r.json();
+    const r=await fetch(`${API_INAT}/taxa/${id}`);const d=await r.json();
     const t=d.results&&d.results[0];if(!t)return;
     let fam="";
     if(t.ancestors){const f=t.ancestors.find(x=>x.rank==="family");if(f)fam=f.preferred_common_name?`${titleCase(f.preferred_common_name)} (${f.name})`:f.name;}
     const ft=$("#famTag");if(ft)ft.textContent=fam?("Family · "+fam):"";
     const wt=$("#wikiText");
     if(wt){
-      if(t.wikipedia_summary){
-        const clean=stripTags(t.wikipedia_summary);
-        const trimmed=clean.length>460?clean.slice(0,460).replace(/\s+\S*$/,"")+"…":clean;
-        wt.innerHTML=escapeHtml(trimmed)+(t.wikipedia_url?` <a href="${t.wikipedia_url}" target="_blank" rel="noopener">read more</a>`:"");
-      }else wt.textContent="No field notes for this one — study the photo with the checklist, then look it up to lock it in.";
+      if(t.wikipedia_summary){const clean=stripTags(t.wikipedia_summary);const trimmed=clean.length>460?clean.slice(0,460).replace(/\s+\S*$/,"")+"…":clean;wt.innerHTML=escapeHtml(trimmed)+(t.wikipedia_url?` <a href="${t.wikipedia_url}" target="_blank" rel="noopener">read more</a>`:"");}
+      else wt.textContent="No field notes for this one — study the photo with the checklist, then look it up to lock it in.";
     }
   }catch(e){const wt=$("#wikiText");if(wt)wt.textContent="(Couldn't load extra notes — use the checklist below.)";const ft=$("#famTag");if(ft)ft.textContent="";}
 }
@@ -552,9 +515,7 @@ function buildForest(){
 function rng(seed){let x=Math.sin(seed*99.7)*10000;return x-Math.floor(x);}
 function renderForestSVG(n){
   const W=640,H=300,ground=H-46;
-  let s=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"><defs>
-    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bcd6df"/><stop offset="1" stop-color="#eee6cf"/></linearGradient>
-    <linearGradient id="grnd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a9c47e"/><stop offset="1" stop-color="#7da154"/></linearGradient></defs>`;
+  let s=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bcd6df"/><stop offset="1" stop-color="#eee6cf"/></linearGradient><linearGradient id="grnd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a9c47e"/><stop offset="1" stop-color="#7da154"/></linearGradient></defs>`;
   s+=`<rect width="${W}" height="${H}" fill="url(#sky)"/><circle cx="560" cy="58" r="30" fill="#f3d27a" opacity="0.9"/>`;
   s+=`<path d="M0 ${ground} Q160 ${ground-40} 320 ${ground} T640 ${ground} V${H} H0 Z" fill="#8fb066" opacity="0.7"/>`;
   s+=`<rect y="${ground}" width="${W}" height="${H-ground}" fill="url(#grnd)"/>`;
@@ -578,10 +539,7 @@ function tree(x,y,scale,r,row){
   const trunkH=34*scale,trunkW=7*scale,greens=["#4f7d3a","#5b8c4a","#6ba052","#3f6b30"];
   const c=greens[(r*greens.length)|0],c2=greens[((r*7)|0)%greens.length];
   const op=row===0?0.82:row===1?0.92:1,cy=-6*scale,R=26*scale;
-  return `<g transform="translate(${x} ${y})" opacity="${op}">`
-    +`<rect x="${-trunkW/2}" y="0" width="${trunkW}" height="${trunkH}" rx="${trunkW/2}" fill="#7a5230"/>`
-    +`<circle cx="${-R*0.5}" cy="${cy}" r="${R*0.7}" fill="${c2}"/><circle cx="${R*0.5}" cy="${cy}" r="${R*0.7}" fill="${c2}"/>`
-    +`<circle cx="0" cy="${cy-R*0.55}" r="${R*0.8}" fill="${c}"/><circle cx="0" cy="${cy}" r="${R*0.85}" fill="${c}"/></g>`;
+  return `<g transform="translate(${x} ${y})" opacity="${op}"><rect x="${-trunkW/2}" y="0" width="${trunkW}" height="${trunkH}" rx="${trunkW/2}" fill="#7a5230"/><circle cx="${-R*0.5}" cy="${cy}" r="${R*0.7}" fill="${c2}"/><circle cx="${R*0.5}" cy="${cy}" r="${R*0.7}" fill="${c2}"/><circle cx="0" cy="${cy-R*0.55}" r="${R*0.8}" fill="${c}"/><circle cx="0" cy="${cy}" r="${R*0.85}" fill="${c}"/></g>`;
 }
 let toastTimer;
 function celebrateTree(total){
@@ -592,12 +550,8 @@ function celebrateTree(total){
 function showError(msg){showLoader(false);hide("#qbody");hide("#feedback");$("#errMsg").textContent=msg;show("#errBox","block");}
 
 /* ---------- wiring ---------- */
-$("#tabLogin").onclick=()=>{authMode="login";renderAuthMode();};
-$("#tabSignup").onclick=()=>{authMode="signup";renderAuthMode();};
-$("#authSubmit").onclick=emailAuth;
-$("#googleBtn").onclick=googleAuth;
-$("#uPass").addEventListener("keydown",e=>{if(e.key==="Enter")emailAuth();});
-$("#uEmail").addEventListener("keydown",e=>{if(e.key==="Enter")$("#uPass").focus();});
+$("#googleBtn").onclick=()=>startLogin("Google");
+$("#emailBtn").onclick=()=>startLogin(null);
 document.querySelectorAll(".cat").forEach(b=>b.onclick=()=>startSession(b.dataset.cat));
 $("#changeMode").onclick=()=>{saveState();showCategory();};
 $("#logoutLink").onclick=logout;
@@ -610,15 +564,15 @@ $("#resetBtn").onclick=()=>{if(confirm("Reset points, streak and the forest for 
 
 /* ---------- start ---------- */
 (async function start(){
-  renderAuthMode();
   if(!configured){ showScreen("setupScreen"); return; }
-  supabase=createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY);
-  const {data:{session:sess}}=await supabase.auth.getSession();
-  if(sess&&sess.user){ await onSignedIn(sess.user); } else { showScreen("authScreen"); }
-  supabase.auth.onAuthStateChange((evt,s2)=>{
-    if((evt==="SIGNED_IN"||evt==="INITIAL_SESSION")&&s2&&s2.user){ onSignedIn(s2.user); }
-    if(evt==="SIGNED_OUT"){ signedInHandled=false; showScreen("authScreen"); }
-  });
+  const url=new URL(location.href);
+  if(url.searchParams.get('code')){
+    await exchangeCode(url.searchParams.get('code'));
+    history.replaceState({},'',cfg.REDIRECT_URI);   // clean ?code= from the URL
+  }
+  const tok=await validIdToken();
+  if(tok){ await onSignedIn(parseJwt(tok)); }
+  else { showScreen("authScreen"); }
 })();
 </script>
 </body>

@@ -1,96 +1,139 @@
-# 🌱 Sprout
+# 🌱 Sprout — AWS edition
 
-A Duolingo-style game for learning the **trees and plants of the Pacific Northwest** (focused on British Columbia). You get a real photo, guess the species from four choices, read how to recognise it, earn points, and grow a virtual forest. Accounts and progress are stored in the cloud, so they sync across your phone and laptop.
+A Duolingo-style game for learning the trees and plants of the Pacific Northwest (focused on British Columbia), running entirely on AWS.
 
-- **Data:** live photos & species from the [iNaturalist API](https://api.inaturalist.org/v1/docs/) (citizen science), ID notes from Wikipedia.
-- **Accounts & sync:** [Supabase](https://supabase.com) (Postgres + Auth, incl. Google sign-in).
-- **Hosting:** any static host (Vercel / Netlify / Cloudflare Pages). No server, no build step.
+**Architecture (what each piece does):**
 
----
-
-## What's in here
-
-| File | What it is |
-|------|------------|
-| `index.html` | The whole app (HTML + CSS + JS). |
-| `config.js`  | **You edit this** — your Supabase URL + anon key. |
-| `schema.sql` | One-time database setup to paste into Supabase. |
-| `.gitignore` | Standard ignores. |
-
----
-
-## Setup (about 15 minutes, all free)
-
-### 1. Create a Supabase project
-1. Go to **https://supabase.com** → sign in → **New project**.
-2. Pick a name, a strong database password, and a region near you (e.g. *West US* for BC).
-3. Wait ~2 minutes for it to provision.
-
-### 2. Create the database table
-1. In the project, open **SQL Editor** → **New query**.
-2. Paste the entire contents of `schema.sql` and click **Run**.
-   This creates a `progress` table and locks it down so each user can only touch their own row.
-
-### 3. Get your keys into `config.js`
-1. In Supabase: **Project Settings → API** (or **Data API**).
-2. Copy the **Project URL** and the **anon / public** key.
-3. Open `config.js` and paste them in:
-   ```js
-   window.SPROUT_CONFIG = {
-     SUPABASE_URL: "https://abcdxyz.supabase.co",
-     SUPABASE_ANON_KEY: "eyJhbGciOi....(long public key)"
-   };
-   ```
-   > The anon key is meant to be public — Row Level Security (from step 2) is what protects the data. Never paste the **service_role** key here.
-
-### 4. Turn on Google sign-in (optional but you asked for it)
-1. In Supabase: **Authentication → Providers → Google → enable**. Leave this tab open; it shows a **Callback URL** like
-   `https://abcdxyz.supabase.co/auth/v1/callback`.
-2. In **Google Cloud Console** (https://console.cloud.google.com):
-   - Create/select a project → **APIs & Services → OAuth consent screen** → set it up (External, add your email as a test user).
-   - **APIs & Services → Credentials → Create credentials → OAuth client ID → Web application**.
-   - Under **Authorized redirect URIs**, paste the **Callback URL** from Supabase (step 1 above).
-   - Create it, then copy the **Client ID** and **Client secret**.
-3. Back in Supabase's Google provider settings, paste the **Client ID** and **Client secret** and save.
-4. In Supabase **Authentication → URL Configuration**, set **Site URL** to your live site (you'll get this in step 6, e.g. `https://sprout-xyz.vercel.app`) and add it to **Redirect URLs** too.
-
-> Email/password sign-up works out of the box. If you don't want users to confirm their email first, go to **Authentication → Providers → Email** and turn off "Confirm email".
-
-### 5. Put the code on GitHub
-**Easiest (no command line):**
-1. Create a free account at github.com, click **New repository**, name it `sprout`, keep it Public or Private, **Create**.
-2. On the empty repo page click **uploading an existing file**, then drag in `index.html`, `config.js`, `schema.sql`, `.gitignore`, and `README.md`. Commit.
-
-**Or with the command line:**
-```bash
-cd sprout
-git init
-git add .
-git commit -m "Sprout: PNW plant ID game"
-git branch -M main
-git remote add origin https://github.com/YOUR-USERNAME/sprout.git
-git push -u origin main
+```
+  Browser (index.html on CloudFront + S3)
+     │  1. login  ──────────────►  Amazon Cognito  ──►  Google (optional)
+     │  2. game data (GET/PUT) ──►  API Gateway (HTTP API)
+     │                                   │  (JWT authorizer checks the Cognito token)
+     │                                   ▼
+     │                                 Lambda  ──►  DynamoDB (per-user progress)
+     └  3. plant photos ────────►  iNaturalist API (public, no auth)
 ```
 
-### 6. Deploy (free)
-**Vercel (recommended):**
-1. Go to **https://vercel.com** → sign in with GitHub → **Add New → Project** → import your `sprout` repo.
-2. Framework preset: **Other**. No build command, output directory = root. Click **Deploy**.
-3. You get a live URL like `https://sprout-xyz.vercel.app`. Every `git push` redeploys automatically.
+- **Cognito** = login + Google sign-in (replaces Supabase Auth).
+- **DynamoDB** = the database storing each user's progress (replaces Supabase Postgres).
+- **Lambda + API Gateway** = the small backend your browser calls; the JWT authorizer makes sure callers are really logged in, and Lambda only ever touches the calling user's own row.
+- **S3 + CloudFront** = static hosting over HTTPS (replaces Vercel).
 
-*(Netlify and Cloudflare Pages work identically — connect the repo, no build settings needed.)*
-
-### 7. Finish the auth loop
-Copy your live URL and make sure it's set as the **Site URL / Redirect URL** in Supabase (step 4.4). Now open the URL on your phone and laptop, sign in with the same account, and your forest follows you. 🎉
+## Files
+| File | What it is |
+|------|------------|
+| `index.html` | The whole app (auth + game). |
+| `config.js` | **You edit this** — your Cognito + API + site URLs. |
+| `lambda/index.mjs` | The Lambda function code (GET/PUT progress). |
+| `aws/lambda-dynamodb-policy.json` | IAM policy letting the Lambda touch the table. |
 
 ---
 
-## Good to know
-- **Free Supabase projects pause after 7 days of no database activity** (a ~30s wake-up on the next visit). For a personal app that's usually fine; if it bugs you, set a tiny scheduled "ping" (search "Supabase keep-alive GitHub Action").
-- **Costs:** Supabase free tier (500 MB DB, 50,000 monthly users) and Vercel/Netlify/Cloudflare free static hosting cover this easily. The only optional cost is a custom domain (~$10–15/yr).
-- **Privacy/licensing:** photos are shown with their iNaturalist attribution and are Creative-Commons licensed. Please keep the attribution visible.
+# Setup walkthrough
+
+Budget ~1–2 hours the first time. Pick **one region** and use it everywhere (e.g. `us-west-2` Oregon, closest to BC). Order matters — follow top to bottom.
+
+## 0. Account safety first
+1. **Billing alarm:** Billing console → **Budgets** → create a $5 monthly budget with an email alert. Learning = you'll misconfigure things; this is your tripwire.
+2. **Don't use the root account day-to-day.** IAM → Users → create a user → attach `AdministratorAccess` (fine for a learning account) → sign in as that user from now on.
+3. *(Optional)* Install the **AWS CLI** and run `aws configure` with that user's access key — handy for the S3 upload later. Console-only is fine too.
+
+## 1. DynamoDB table (the database)
+1. DynamoDB console → **Create table**.
+2. **Table name:** `SproutProgress`
+3. **Partition key:** `userId` (type **String**). No sort key.
+4. Leave defaults (on-demand capacity) → **Create table**.
+
+## 2. Lambda function (the backend logic)
+1. Lambda console → **Create function** → **Author from scratch**.
+2. **Name:** `sprout-progress` · **Runtime:** Node.js 20.x (or newer) · **Architecture:** arm64 is fine.
+3. Create it. In the **Code** tab, replace the contents of `index.mjs` with the code from `lambda/index.mjs` in this repo, then click **Deploy**.
+4. **Configuration → Environment variables → Edit → Add:** key `TABLE_NAME`, value `SproutProgress`. Save.
+5. **Give it permission to use the table.** Configuration → **Permissions** → click the **Execution role** name (opens IAM) → **Add permissions → Create inline policy** → **JSON** tab → paste `aws/lambda-dynamodb-policy.json`, replacing `REGION` and `ACCOUNT_ID` (your account ID is in the top-right of the console). Name it `SproutDynamoAccess` → Create.
+
+## 3. Hosting: S3 + CloudFront (do this before Cognito, to learn your site URL)
+**S3 bucket:**
+1. S3 console → **Create bucket** → a globally-unique name like `sprout-yourname-site`. Keep **Block all public access ON** (CloudFront will read it privately). Create.
+2. Upload `index.html` and `config.js` for now (config still has placeholders — that's fine, you'll re-upload later).
+
+**CloudFront distribution:**
+3. CloudFront console → **Create distribution**.
+4. **Origin:** choose your S3 bucket. For **Origin access**, pick **Origin access control (OAC)** → create one → CloudFront will show a bucket policy snippet to **copy**; paste it into S3 → bucket → **Permissions → Bucket policy** so CloudFront can read the bucket.
+5. **Default root object:** `index.html`.
+6. **Viewer protocol policy:** Redirect HTTP to HTTPS.
+7. Create. Wait ~5 min for "Deployed". Copy the **Distribution domain name**, e.g. `https://d111abc.cloudfront.net` — this is your **site URL**. Use it (with a trailing slash) as `REDIRECT_URI` later.
+
+## 4. Cognito (login + Google)
+1. Cognito console → **Create user pool**.
+2. Sign-in options: **Email**. (This lets people use email/password; Google gets added next.)
+3. Walk through the wizard: allow self-registration, email as the verification/recovery method, and **Cognito-hosted "Send email with Cognito"** (fine for low volume).
+4. **App client:** create a **public client** (a SPA — *no client secret*). Name it `sprout-web`.
+5. **Managed login / Hosted UI:**
+   - Add a **domain**: choose a Cognito prefix domain, e.g. `sprout-yourname` → gives `https://sprout-yourname.auth.<region>.amazoncognito.com`.
+   - **Allowed callback URLs:** your CloudFront URL **with trailing slash**, e.g. `https://d111abc.cloudfront.net/`. (Add `http://localhost:8000/` too if you want to test locally.)
+   - **Allowed sign-out URLs:** the same `https://d111abc.cloudfront.net/`.
+   - **OAuth grant types:** **Authorization code grant** (NOT implicit).
+   - **OpenID Connect scopes:** `openid`, `email`, `profile`.
+6. Note three values: **User Pool ID**, **App client ID**, and the **domain**.
+
+### 4b. Add Google sign-in
+1. **Google Cloud Console** (console.cloud.google.com) → create/select a project.
+2. **APIs & Services → OAuth consent screen** → External → fill basics → add your email as a **test user**.
+3. **APIs & Services → Credentials → Create credentials → OAuth client ID → Web application.**
+4. **Authorized redirect URIs:** add exactly
+   `https://sprout-yourname.auth.<region>.amazoncognito.com/oauth2/idpresponse`
+   (your Cognito domain + `/oauth2/idpresponse`).
+5. Create → copy the **Client ID** and **Client secret**.
+6. Back in **Cognito → your user pool → Sign-in / Social providers → Add identity provider → Google.** Paste the Client ID and secret. Set authorized scopes to `openid email profile`. Map Google **email → email**.
+7. In your **app client's** login settings, tick **Google** (and Cognito user pool) as enabled identity providers. Save.
+
+## 5. API Gateway (the door to Lambda)
+1. API Gateway console → **Create API → HTTP API → Build**.
+2. **Add integration:** Lambda → pick `sprout-progress`. Name the API `sprout-api`.
+3. **Routes:** add `GET /progress` and `PUT /progress`, both pointing at the Lambda integration.
+4. **Authorization:** create a **JWT authorizer** and attach it to both routes:
+   - **Issuer URL:** `https://cognito-idp.<region>.amazonaws.com/<your-user-pool-id>`
+   - **Audience:** your **app client ID**.
+   - Identity source: `$request.header.Authorization`.
+5. **CORS** (so the browser is allowed to call it): API → **CORS** → set
+   - **Access-Control-Allow-Origin:** your CloudFront URL **without** trailing slash, e.g. `https://d111abc.cloudfront.net`
+   - **Allow-Methods:** `GET, PUT, OPTIONS`
+   - **Allow-Headers:** `authorization, content-type`
+   (The HTTP API handles the preflight `OPTIONS` automatically — don't add CORS in the Lambda too, or you'll get duplicate-header errors.)
+6. Copy the **Invoke URL** (e.g. `https://abcd1234.execute-api.<region>.amazonaws.com`) — that's `API_BASE`.
+
+## 6. Fill in config.js and re-deploy
+1. Edit `config.js`:
+   ```js
+   window.SPROUT_CONFIG = {
+     CLIENT_ID:      "your app client id",
+     COGNITO_DOMAIN: "sprout-yourname.auth.us-west-2.amazoncognito.com",
+     API_BASE:       "https://abcd1234.execute-api.us-west-2.amazonaws.com",
+     REDIRECT_URI:   "https://d111abc.cloudfront.net/"
+   };
+   ```
+2. Re-upload `index.html` + `config.js` to the S3 bucket (overwrite).
+3. CloudFront → your distribution → **Invalidations → Create** → path `/*` (clears the cache so the new files show).
+4. *(Push the same files to your GitHub repo so it stays your source of truth.)*
+
+## 7. Test
+1. Open your CloudFront URL on your laptop. Click **Continue with Google** or **email** → you land on the AWS sign-in page → sign in → you're bounced back and the game loads.
+2. Answer a few questions, then open the URL on your **phone** and sign in with the same account — your forest should match. 🎉
+
+---
+
+## Troubleshooting
+- **`redirect_mismatch` / Google error:** the callback URL must match *exactly* (trailing slash included) in Cognito, and the Google redirect URI must be the `…/oauth2/idpresponse` one. These two are the usual culprits.
+- **Setup screen won't go away:** `config.js` still has placeholder `xxxx` values, or CloudFront served a cached old copy — re-upload and invalidate `/*`.
+- **CORS errors in the browser console:** the API's Allow-Origin must equal your CloudFront origin with **no** trailing slash; make sure you didn't also add CORS headers in the Lambda.
+- **401 from the API:** the JWT authorizer's **audience** must be your app client ID and the **issuer** the `cognito-idp…/<pool-id>` URL; the app sends the **ID token** as the bearer.
+- **Stuck:** Lambda → Monitor → **View CloudWatch logs** shows server-side errors.
+
+## Cost & upkeep
+- For personal traffic this runs at roughly **$0–pennies/month**. DynamoDB on-demand and Lambda have small always-free allowances; **much of the AWS Free Tier is only 12 months**, so keep that $5 budget alarm on. CloudFront + S3 for a tiny site is cents.
+- Unlike Supabase, nothing here "pauses" — it just sits idle at near-zero cost.
 
 ## Ideas for later
+- A friends leaderboard (another DynamoDB table + a `GET /leaderboard` route).
+- A "near me" mode using the browser's GPS instead of the whole region.
 - Difficulty levels (easy = very different species, hard = same-genus look-alikes).
-- A "near me" mode using your GPS instead of the whole region.
-- Daily challenge / leaderboard among friends (Supabase makes this easy).
