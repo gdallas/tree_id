@@ -1,0 +1,159 @@
+import * as cdk from 'aws-cdk-lib';
+import { Construct } from 'constructs';
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as cognito from 'aws-cdk-lib/aws-cognito';
+import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
+import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
+import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
+import { HttpApi, HttpMethod, CorsHttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
+import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import { HttpJwtAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
+import * as path from 'path';
+
+export interface SproutStackProps extends cdk.StackProps {
+  envName: 'dev' | 'prod';
+  googleClientId?: string;
+  googleClientSecret?: string;
+}
+
+export class SproutStack extends cdk.Stack {
+  constructor(scope: Construct, id: string, props: SproutStackProps) {
+    super(scope, id, props);
+    const { envName } = props;
+    const isProd = envName === 'prod';
+    const removal = isProd ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY;
+
+    // ---------- DATABASE: one DynamoDB table per environment ----------
+    const table = new dynamodb.Table(this, 'ProgressTable', {
+      tableName: `SproutProgress-${envName}`,
+      partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: removal,
+    });
+
+    // ---------- BACKEND: Lambda that reads/writes the table ----------
+    const fn = new lambda.Function(this, 'ProgressFn', {
+      functionName: `sprout-progress-${envName}`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '..', '..', 'lambda')),
+      environment: { TABLE_NAME: table.tableName },
+      timeout: cdk.Duration.seconds(10),
+    });
+    table.grantReadWriteData(fn);
+
+    // ---------- HOSTING: private S3 bucket served via CloudFront (HTTPS) ----------
+    const siteBucket = new s3.Bucket(this, 'SiteBucket', {
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      removalPolicy: removal,
+      autoDeleteObjects: !isProd,
+    });
+    const distribution = new cloudfront.Distribution(this, 'SiteCDN', {
+      defaultRootObject: 'index.html',
+      defaultBehavior: {
+        origin: origins.S3BucketOrigin.withOriginAccessControl(siteBucket),
+        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+      },
+    });
+    const siteUrl = `https://${distribution.distributionDomainName}`;
+
+    // ---------- AUTH: Cognito user pool + managed login + (optional) Google ----------
+    const userPool = new cognito.UserPool(this, 'UserPool', {
+      userPoolName: `Sprout-${envName}`,
+      selfSignUpEnabled: true,
+      signInAliases: { email: true },
+      autoVerify: { email: true },
+      standardAttributes: {
+        email: { required: true, mutable: true },
+        fullname: { required: false, mutable: true },
+      },
+      removalPolicy: removal,
+    });
+
+    const domainPrefix = `sprout-${envName}-${this.account}`;
+    userPool.addDomain('Domain', { cognitoDomain: { domainPrefix } });
+    const cognitoDomain = `${domainPrefix}.auth.${this.region}.amazoncognito.com`;
+
+    const providers = [cognito.UserPoolClientIdentityProvider.COGNITO];
+    let googleProvider: cognito.UserPoolIdentityProviderGoogle | undefined;
+    if (props.googleClientId && props.googleClientSecret) {
+      googleProvider = new cognito.UserPoolIdentityProviderGoogle(this, 'Google', {
+        userPool,
+        clientId: props.googleClientId,
+        clientSecretValue: cdk.SecretValue.unsafePlainText(props.googleClientSecret),
+        scopes: ['openid', 'email', 'profile'],
+        attributeMapping: {
+          email: cognito.ProviderAttribute.GOOGLE_EMAIL,
+          fullname: cognito.ProviderAttribute.GOOGLE_NAME,
+        },
+      });
+      providers.push(cognito.UserPoolClientIdentityProvider.GOOGLE);
+    }
+
+    const client = userPool.addClient('WebClient', {
+      userPoolClientName: `sprout-web-${envName}`,
+      generateSecret: false,
+      oAuth: {
+        flows: { authorizationCodeGrant: true },
+        scopes: [cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL, cognito.OAuthScope.PROFILE],
+        callbackUrls: [`${siteUrl}/`],
+        logoutUrls: [`${siteUrl}/`],
+      },
+      supportedIdentityProviders: providers,
+    });
+    if (googleProvider) client.node.addDependency(googleProvider);
+
+    // ---------- API: HTTP API + Cognito JWT authorizer -> Lambda ----------
+    const authorizer = new HttpJwtAuthorizer(
+      'JwtAuth',
+      `https://cognito-idp.${this.region}.amazonaws.com/${userPool.userPoolId}`,
+      { jwtAudience: [client.userPoolClientId] },
+    );
+    const httpApi = new HttpApi(this, 'Api', {
+      apiName: `sprout-api-${envName}`,
+      corsPreflight: {
+        allowOrigins: [siteUrl],
+        allowMethods: [CorsHttpMethod.GET, CorsHttpMethod.PUT, CorsHttpMethod.OPTIONS],
+        allowHeaders: ['authorization', 'content-type'],
+      },
+    });
+    httpApi.addRoutes({
+      path: '/progress',
+      methods: [HttpMethod.GET, HttpMethod.PUT],
+      integration: new HttpLambdaIntegration('ProgressIntegration', fn),
+      authorizer,
+    });
+
+    // ---------- DEPLOY: upload site + auto-generated config.js, invalidate cache ----------
+    const configJs = [
+      '// Auto-generated by CDK at deploy time. Do not edit by hand.',
+      'window.SPROUT_CONFIG = {',
+      `  CLIENT_ID: "${client.userPoolClientId}",`,
+      `  COGNITO_DOMAIN: "${cognitoDomain}",`,
+      `  API_BASE: "${httpApi.apiEndpoint}",`,
+      `  REDIRECT_URI: "${siteUrl}/"`,
+      '};',
+    ].join('\n');
+
+    new s3deploy.BucketDeployment(this, 'DeploySite', {
+      destinationBucket: siteBucket,
+      sources: [
+        s3deploy.Source.asset(path.join(__dirname, '..', '..', 'web')),
+        s3deploy.Source.data('config.js', configJs),
+      ],
+      distribution,
+      distributionPaths: ['/*'],
+    });
+
+    // ---------- OUTPUTS ----------
+    new cdk.CfnOutput(this, 'SiteURL', { value: `${siteUrl}/` });
+    new cdk.CfnOutput(this, 'GoogleRedirectURI', {
+      value: `https://${cognitoDomain}/oauth2/idpresponse`,
+    });
+    new cdk.CfnOutput(this, 'CognitoDomain', { value: cognitoDomain });
+    new cdk.CfnOutput(this, 'ApiBase', { value: httpApi.apiEndpoint });
+  }
+}
