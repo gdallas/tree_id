@@ -1,0 +1,46 @@
+name: Deploy Sprout
+
+# Push to `dev`  -> deploy the dev environment
+# Push to `main` -> deploy the prod environment
+on:
+  push:
+    branches: [dev, main]
+  workflow_dispatch:   # also allow manual runs from the Actions tab
+
+permissions:
+  id-token: write   # required for AWS OIDC
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install infra dependencies
+        working-directory: infra
+        run: npm ci
+
+      - name: Configure AWS credentials (OIDC, no stored keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-west-2
+
+      - name: Deploy (dev or prod based on branch)
+        working-directory: infra
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            npx cdk deploy SproutProd --require-approval never
+          else
+            npx cdk deploy SproutDev --require-approval never
+          fi
