@@ -97,6 +97,12 @@
   .tip .checklist{list-style:none;display:flex;flex-wrap:wrap;gap:7px}
   .tip .checklist li{font-size:12.5px;font-weight:600;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:6px 10px;color:var(--ink-soft)}
   .tip a{color:var(--forest);font-weight:700}
+  .id-tips{display:flex;flex-direction:column;gap:7px;margin-top:4px}
+  .id-tip{display:flex;gap:10px;background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:9px 12px;align-items:flex-start}
+  .id-tip .ico{font-size:15px;flex:none;padding-top:2px;line-height:1}
+  .id-tip .body{display:flex;flex-direction:column;gap:2px}
+  .id-tip .cat{font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--terracotta-deep)}
+  .id-tip .desc{font-size:13px;color:var(--ink);line-height:1.45}
   .next{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:16px;color:#fff;background:linear-gradient(180deg,var(--leaf-bright),var(--forest));border:none;border-radius:13px;padding:15px;cursor:pointer;box-shadow:0 4px 0 var(--forest-deep);transition:transform .1s ease;display:flex;align-items:center;justify-content:center;gap:8px}
   .next:active{transform:translateY(2px);box-shadow:0 2px 0 var(--forest-deep)}
   .err{padding:30px 20px;text-align:center;color:var(--ink-soft);display:none}
@@ -258,6 +264,131 @@
 const API_INAT="https://api.inaturalist.org/v1";
 const PNW={swlat:42.0,swlng:-139.5,nelat:60.0,nelng:-114.0};
 const TREE_TAXA=[{q:"Pinaceae",rank:"family"},{q:"Cupressaceae",rank:"family"},{q:"Taxaceae",rank:"family"},{q:"Acer",rank:"genus"},{q:"Quercus",rank:"genus"},{q:"Alnus",rank:"genus"},{q:"Betula",rank:"genus"},{q:"Populus",rank:"genus"},{q:"Arbutus",rank:"genus"},{q:"Fraxinus",rank:"genus"},{q:"Salix",rank:"genus"},{q:"Prunus",rank:"genus"},{q:"Cornus",rank:"genus"}];
+/* Genus/family-level identification tips for PNW trees */
+const TREE_TIPS={
+  /* ── Conifers ──────────────────────────────────────────────────── */
+  "Pseudotsuga":{
+    leaves:"Flat, soft needles radiate all around the twig; two white stomatal bands on underside; pull off cleanly leaving an oval scar",
+    cones:"Pendant cones with unmistakable 3-pronged 'mouse-tail' bracts poking out between scales",
+    bark:"Young: smooth grey-green with resin blisters. Mature: thick, deeply furrowed, reddish-brown",
+    form:"Tall straight trunk; horizontal branches, lower ones slightly drooping at tips; pointed crown"
+  },
+  "Abies":{
+    leaves:"Flat needles with 2 white bands below; attached by a round suction-cup base — pop off leaving a round scar (vs. peg in spruce)",
+    cones:"Barrel-shaped cones stand upright on the branch and disintegrate in place; never fall whole",
+    bark:"Smooth, grey with chalky resin blisters on young trees; broken into irregular grey plates with age",
+    form:"Strongly conical crown; flat, horizontal branches in whorls; often very regular and symmetrical"
+  },
+  "Picea":{
+    leaves:"Short, stiff, sharp 4-sided needles; attached to a woody peg — strip needles and feel the rough peggy twig",
+    cones:"Pendant cones with thin, papery scales; fall whole to the ground intact",
+    bark:"Scaly, flaky grey-brown; thin plates that peel off in irregular patches",
+    form:"Strongly pyramidal; lower branches sweep downward; stiff, brushy silhouette"
+  },
+  "Tsuga":{
+    leaves:"Short flat needles of unequal length with 2 white bands below; arranged loosely and irregularly; petiolate (tiny stalk)",
+    cones:"Very small (2–3 cm), pendant, oval cones with rounded scales",
+    bark:"Deeply furrowed, reddish-brown to purple-grey; prominent ridges",
+    form:"Graceful drooping leader (treetop tip) is the key ID feature; branch tips pendulous"
+  },
+  "Pinus":{
+    leaves:"Needles in tight bundles (fascicles) of 2, 3, or 5, enclosed at base in a papery sheath",
+    cones:"Woody cones; often large with thickened scales; frequently persist on tree for years",
+    bark:"Scaly to plated; often orange-red to grey; ponderosa pine has distinctive orange jigsaw-puzzle bark",
+    form:"Variable — pyramidal when young; broad, irregular, or flat-topped crown with age"
+  },
+  "Larix":{
+    leaves:"Needles in dense tufts of 15–30 on short spur shoots along branches; golden yellow in fall — the only deciduous conifer here",
+    cones:"Small upright cones with persistent scales; remain on branch after seeds are shed",
+    bark:"Thick, deeply furrowed, orange-brown; fire-resistant",
+    form:"Straight tall trunk; ascending upper branches; open, airy crown; stunning gold in autumn"
+  },
+  "Thuja":{
+    leaves:"Flat fan-like sprays of overlapping scale-leaves; pineapple or cedar scent when crushed; bright green above, paler below",
+    cones:"Small (1 cm), leathery, egg-shaped cones with 10–12 scales; brown and upright",
+    bark:"Fibrous, stringy, reddish-brown; peels off in long vertical strips",
+    form:"Massive, buttressed trunk at base; dense feathery crown; branches sweep down then curve up at tips"
+  },
+  "Chamaecyparis":{
+    leaves:"Very flat, lacy sprays of scale-like leaves; white X-marks on the underside of sprays; pungent when crushed",
+    cones:"Tiny round cones (8 mm) resembling small soccer balls; blue-black when ripe",
+    bark:"Thin, reddish-brown; shreddy in vertical strips similar to Western Red Cedar",
+    form:"Narrowly conical; drooping branch tips; often with multiple stems at base in older trees"
+  },
+  "Juniperus":{
+    leaves:"Scale-like overlapping leaves on mature growth OR sharp awl-like juvenile needles — sometimes both on the same plant; pungent aroma when crushed",
+    cones:"Berry-like, fleshy, blue-purple with a waxy bloom; resinous; often used as a gin flavouring",
+    bark:"Shreddy, grey-brown; fibrous and stringy strips",
+    form:"Shrubby to small tree; often contorted and low-spreading on rocky or exposed sites"
+  },
+  "Taxus":{
+    leaves:"Flat, dark green needles with lighter green below; NO white bands; arranged in 2 flat ranks along twig; seed in a fleshy red aril (not a cone)",
+    cones:"No cones — seed sits in a bright red, fleshy, cup-shaped aril. CAUTION: entire plant except the aril flesh is toxic",
+    bark:"Thin, flaky, reddish-purple; thin scaly plates",
+    form:"Multi-stemmed shrub or small tree; very dense, dark canopy; highly shade-tolerant understorey"
+  },
+  /* ── Broadleafs ─────────────────────────────────────────────────── */
+  "Acer":{
+    leaves:"Opposite, palmate leaves with 3–9 pointed lobes and toothed margins; Big Leaf Maple has very large 5-lobed leaves (up to 60 cm across)",
+    cones:"Paired winged samaras ('helicopters') in V-shape; ripen late summer, spin to ground",
+    bark:"Bigleaf Maple: grey-brown, deeply furrowed with age. Vine Maple: smooth, greenish, multi-stemmed shrub",
+    form:"Bigleaf Maple: large tree (20–35 m) with wide crown; Vine Maple: crooked multi-stemmed understorey tree"
+  },
+  "Quercus":{
+    leaves:"Deeply lobed leaves (lobes rounded on Garry Oak); thick, leathery; may persist into winter; dark glossy green above",
+    cones:"Acorns (nuts sitting in a scaly cap); Garry Oak cap has fringed scales covering ~1/3 of nut",
+    bark:"Thick, deeply furrowed, rough grey-brown — distinctive amongst BC broadleafs",
+    form:"Broad spreading crown; gnarled, irregular branching pattern; often hosts ball-like clumps of mistletoe"
+  },
+  "Alnus":{
+    leaves:"Alternate, oval-elliptical with doubly toothed margins; tip rounded; dark green above, paler below",
+    cones:"Small, hard, woody catkin-cones (1–2 cm) persist through winter after seeds are shed; male catkins dangle in early spring",
+    bark:"Smooth, grey; often with pale horizontal lenticels; slightly birch-like on young trees",
+    form:"Often multi-stemmed; leans over streams; almost always in riparian zones; root nodules fix nitrogen"
+  },
+  "Betula":{
+    leaves:"Alternate, triangular to diamond-shaped with doubly toothed margins; turn clear golden yellow in fall",
+    cones:"Small cylindrical catkins that fall apart releasing tiny papery-winged seeds",
+    bark:"White to cream-coloured, papery; peels in horizontal sheets; dark horizontal markings at branch nodes — very distinctive",
+    form:"Often multi-stemmed; light airy canopy; pioneer species on disturbed and rocky sites"
+  },
+  "Populus":{
+    leaves:"Trembling Aspen: round leaves on a flattened petiole — shimmer and 'tremble' in the slightest breeze. Cottonwood: broader, triangular leaves",
+    cones:"Cottony seeds released in early summer; can create blizzard-like drifts of white fluff",
+    bark:"Trembling Aspen: smooth, greenish-white, chalky. Cottonwood: becomes deeply furrowed, grey-brown on old trunks",
+    form:"Trembling Aspen: columnar; forms clonal groves all connected by roots. Cottonwood: massive tree along rivers"
+  },
+  "Arbutus":{
+    leaves:"Evergreen; alternate; elliptical; thick, dark glossy green above, pale and smooth below; smooth untoothed margins",
+    cones:"Clusters of small orange-red berries ripen in fall; white urn-shaped flowers in spring",
+    bark:"The definitive feature: smooth, peeling bark. Outer layer rich orange-red to cinnamon; inner layer bright green; constantly shedding like sunburned skin",
+    form:"Twisted, often leaning trunk; evergreen canopy; grows on rocky, dry, SE-facing bluffs — BC's only native broadleaf evergreen tree"
+  },
+  "Fraxinus":{
+    leaves:"Opposite, pinnately compound; 5–9 oval leaflets with toothed margins; turn yellow to purple in fall",
+    cones:"Flat, paddle-shaped winged seeds (samaras) in dense hanging clusters; persist into winter",
+    bark:"Intersecting diamond-shaped ridges forming a regular pattern on mature trees; greyish",
+    form:"Straight trunk; broadly oval, open crown; often growing near water or in moist bottomlands"
+  },
+  "Salix":{
+    leaves:"Mostly alternate; long, narrow, lance-shaped with finely toothed margins; bright yellow fall colour",
+    cones:"Soft fuzzy catkins in early spring (pussy willows); cottony seeds dispersed by wind in early summer",
+    bark:"Variable with species — rough, furrowed, grey on large willows; yellow-orange on inner bark of some",
+    form:"Shrubby to medium tree; always near water; flexible, pliable twigs; fast-growing pioneer"
+  },
+  "Prunus":{
+    leaves:"Alternate, elliptical with finely toothed margins; often with 2 small glands at the petiole base",
+    cones:"Cherries, plums, or bitter cherries — small stone fruits (drupes) in red, yellow, or nearly black",
+    bark:"Thin, smooth, reddish-brown to grey; prominent horizontal lenticels; scratch the bark for a bitter-almond scent",
+    form:"Variable — shrubby thickets (bitter cherry) to medium tree; showy white or pink blossom in early spring before leaves"
+  },
+  "Cornus":{
+    leaves:"Opposite, simple; oval with prominent veins that curve parallel to the leaf edge and arch toward the tip — the vein pattern is diagnostic",
+    cones:"Pacific Dogwood: large white 'flowers' are actually 4–6 petal-like bracts; true flowers tiny in the centre; clusters of red berries in fall",
+    bark:"Smooth, thin, greenish-grey; may develop scaly texture with age",
+    form:"Small to medium understorey tree; spectacular white bracts in spring, scarlet foliage in fall"
+  }
+};
 const $=s=>document.querySelector(s);
 const hide=s=>{$(s).style.display="none";};
 const show=(s,d="block")=>{$(s).style.display=d;};
@@ -473,24 +604,51 @@ function revealFeedback(win,pts){
   fb.innerHTML=`
     <div class="verdict ${win?'win':'lose'}"><span>${win?'🌿 Correct!':'🍂 Not quite'}</span>${win?`<span class="pts">+${pts} pts</span>`:''}</div>
     <div class="species"><div class="common">${escapeHtml(a.label)}</div><div class="sci">${escapeHtml(a.sci)}</div><span class="fam" id="famTag">loading family…</span></div>
-    <div class="tip"><h4>How to recognise it</h4><div class="wiki" id="wikiText">Looking up field notes…</div>
-      <ul class="checklist"><li>🍃 Leaf shape &amp; edges</li><li>🌿 Leaf arrangement</li><li>🌸 Flowers / cones / fruit</li><li>🪵 Bark &amp; stem</li><li>📐 Overall form</li></ul></div>
+    <div class="tip"><h4>How to identify it</h4><div class="wiki" id="wikiText">Looking up field notes…</div>
+      <div id="idTips" class="id-tips"><span style="font-size:13px;color:var(--ink-soft);font-style:italic">Loading ID tips…</span></div></div>
     <button class="next" id="nextBtn">Next ${session.category==="trees"?"tree":"plant"} →</button>`;
   show("#feedback","flex"); $("#nextBtn").onclick=nextQuestion; loadTaxonDetail(a.taxonId);
 }
+const ID_TIP_FIELDS=[
+  {ico:"🍃",cat:"Leaves",key:"leaves"},
+  {ico:"🌸",cat:"Cones / Flowers / Fruit",key:"cones"},
+  {ico:"🪵",cat:"Bark",key:"bark"},
+  {ico:"📐",cat:"Form",key:"form"}
+];
 async function loadTaxonDetail(id){
   try{
     const r=await fetch(`${API_INAT}/taxa/${id}`);const d=await r.json();
     const t=d.results&&d.results[0];if(!t)return;
-    let fam="";
-    if(t.ancestors){const f=t.ancestors.find(x=>x.rank==="family");if(f)fam=f.preferred_common_name?`${titleCase(f.preferred_common_name)} (${f.name})`:f.name;}
+    let fam="",famName="",genusName="";
+    if(t.ancestors){
+      const f=t.ancestors.find(x=>x.rank==="family");
+      const g=t.ancestors.find(x=>x.rank==="genus");
+      if(f){fam=f.preferred_common_name?`${titleCase(f.preferred_common_name)} (${f.name})`:f.name;famName=f.name;}
+      if(g) genusName=g.name;
+    }
+    if(!genusName&&t.name) genusName=t.name.split(" ")[0];
     const ft=$("#famTag");if(ft)ft.textContent=fam?("Family · "+fam):"";
     const wt=$("#wikiText");
     if(wt){
       if(t.wikipedia_summary){const clean=stripTags(t.wikipedia_summary);const trimmed=clean.length>460?clean.slice(0,460).replace(/\s+\S*$/,"")+"…":clean;wt.innerHTML=escapeHtml(trimmed)+(t.wikipedia_url?` <a href="${t.wikipedia_url}" target="_blank" rel="noopener">read more</a>`:"");}
-      else wt.textContent="No field notes for this one — study the photo with the checklist, then look it up to lock it in.";
+      else wt.textContent="No field notes for this one — study the photo carefully, then look it up to lock it in.";
     }
-  }catch(e){const wt=$("#wikiText");if(wt)wt.textContent="(Couldn't load extra notes — use the checklist below.)";const ft=$("#famTag");if(ft)ft.textContent="";}
+    const tips=TREE_TIPS[genusName]||TREE_TIPS[famName];
+    const el=$("#idTips");
+    if(el){
+      if(tips){
+        el.innerHTML=ID_TIP_FIELDS.filter(f=>tips[f.key]).map(f=>
+          `<div class="id-tip"><span class="ico">${f.ico}</span><div class="body"><span class="cat">${f.cat}</span><span class="desc">${escapeHtml(tips[f.key])}</span></div></div>`
+        ).join("");
+      }else{
+        el.innerHTML=`<div class="id-tip"><span class="ico">🔍</span><div class="body"><span class="desc">Look for: leaf shape &amp; arrangement, bark texture, any fruit or cones, and the overall silhouette.</span></div></div>`;
+      }
+    }
+  }catch(e){
+    const wt=$("#wikiText");if(wt)wt.textContent="(Couldn't load extra notes.)";
+    const ft=$("#famTag");if(ft)ft.textContent="";
+    const el=$("#idTips");if(el)el.innerHTML=`<div class="id-tip"><span class="ico">🔍</span><div class="body"><span class="desc">Look for: leaf shape, bark texture, fruit or cones, and the overall silhouette.</span></div></div>`;
+  }
 }
 function stripTags(h){const d=document.createElement("div");d.innerHTML=h;return (d.textContent||"").trim();}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
