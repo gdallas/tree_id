@@ -94,17 +94,16 @@
   .tip{font-size:14.5px;line-height:1.55}
   .tip h4{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--terracotta-deep);font-weight:800;margin-bottom:5px}
   .tip .wiki{margin-bottom:10px}
-  .id-feature{margin-bottom:8px;padding:8px 10px;background:rgba(124,174,84,.12);border-left:3px solid var(--leaf,#7cae54);border-radius:6px}
   .tip .checklist{list-style:none;display:flex;flex-wrap:wrap;gap:7px}
   .tip .checklist li{font-size:12.5px;font-weight:600;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:6px 10px;color:var(--ink-soft)}
   .tip a{color:var(--forest);font-weight:700}
-  .id-tips{display:flex;flex-direction:column;gap:0;margin-top:6px}
-  .id-tip{padding:5px 2px;border-bottom:1px solid var(--line);font-size:13px;color:var(--ink);line-height:1.5}
-  .id-tip:last-child{border-bottom:none}
-  .id-tip .ico{display:none}
-  .id-tip .body{display:inline}
-  .id-tip .cat{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-right:5px}
-  .id-tip .desc{font-size:13px;color:var(--ink)}
+  .id-tips{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+  @media(max-width:480px){.id-tips{grid-template-columns:repeat(2,1fr)}}
+  .id-tip{background:var(--paper-2);border:1px solid var(--line);border-radius:10px;padding:8px 9px}
+  .id-tip .ico{font-size:12px;margin-right:3px}
+  .id-tip .body{display:block}
+  .id-tip .cat{display:block;font-size:9px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--ink-soft);margin-bottom:3px}
+  .id-tip .desc{font-size:12px;color:var(--ink);line-height:1.4}
   .next{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:16px;color:#fff;background:linear-gradient(180deg,var(--leaf-bright),var(--forest));border:none;border-radius:13px;padding:15px;cursor:pointer;box-shadow:0 4px 0 var(--forest-deep);transition:transform .1s ease;display:flex;align-items:center;justify-content:center;gap:8px}
   .next:active{transform:translateY(2px);box-shadow:0 2px 0 var(--forest-deep)}
   .err{padding:30px 20px;text-align:center;color:var(--ink-soft);display:none}
@@ -776,15 +775,16 @@ function revealFeedback(win,pts){
   show("#feedback","flex"); $("#nextBtn").onclick=nextQuestion; loadTaxonDetail(a.taxonId);
 }
 const ID_TIP_FIELDS=[
+  {ico:"🔑",cat:"Key Feature",key:"id_feature"},
   {ico:"💡",cat:"Fun Fact",key:"fact"},
   {ico:"🍃",cat:"Leaves",key:"leaves"},
-  {ico:"🌸",cat:"Cones / Flowers / Fruit",key:"cones"},
+  {ico:"🌸",cat:"Flowers / Fruit",key:"cones"},
   {ico:"🪵",cat:"Bark",key:"bark"},
   {ico:"📐",cat:"Form",key:"form"}
 ];
 function renderTipCards(tips){
   return ID_TIP_FIELDS.filter(f=>tips[f.key]).map(f=>
-    `<div class="id-tip"><span class="ico">${f.ico}</span><div class="body"><span class="cat">${f.cat}</span><span class="desc">${escapeHtml(tips[f.key])}</span></div></div>`
+    `<div class="id-tip"><div class="body"><span class="cat">${f.ico} ${f.cat}</span><span class="desc">${escapeHtml(tips[f.key])}</span></div></div>`
   ).join("");
 }
 async function fetchTipsFromApi(taxonId,genusName,famName,sciName,commonName,wikiText){
@@ -830,10 +830,8 @@ async function loadTaxonDetail(id){
       :null;
 
     if(wt&&wt.isConnected){
-      if(apiTips&&(apiTips.summary||apiTips.id_feature)){
-        const feature=apiTips.id_feature?`<div class="id-feature"><strong>🔑 Key feature:</strong> ${escapeHtml(apiTips.id_feature)}</div>`:"";
-        const summary=apiTips.summary?escapeHtml(apiTips.summary):"";
-        wt.innerHTML=feature+summary+wikiLink;
+      if(apiTips&&apiTips.summary){
+        wt.innerHTML=escapeHtml(apiTips.summary)+wikiLink;
       }else if(rawWiki){
         // DeepSeek summary unavailable — fall back to a trimmed extract + link.
         const trimmed=rawWiki.length>460?rawWiki.slice(0,460).replace(/\s+\S*$/,"")+"…":rawWiki;
