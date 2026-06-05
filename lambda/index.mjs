@@ -81,7 +81,7 @@ Reply ONLY with valid JSON — no markdown, no backticks, no explanation:
     },
     body: JSON.stringify({
       model: "deepseek-chat",
-      max_tokens: 600,
+      max_tokens: 1600,
       messages: [{ role: "user", content: prompt }],
     }),
   });
