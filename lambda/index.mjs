@@ -65,6 +65,7 @@ async function handleTips(event) {
 
 Reply ONLY with valid JSON — no markdown, no backticks, no explanation:
 {${summaryField}
+  "id_feature": "ONE sentence naming the single most distinctive feature for identifying this plant at a glance in the field (max 160 chars)",
   "leaves": "leaf shape, arrangement, texture and colour (max 150 chars)",
   "cones": "flowers, cones, fruit or seed description (max 150 chars)",
   "bark": "bark or stem — start with 'No true bark;' for herbaceous plants (max 150 chars)",

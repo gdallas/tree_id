@@ -94,6 +94,7 @@
   .tip{font-size:14.5px;line-height:1.55}
   .tip h4{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--terracotta-deep);font-weight:800;margin-bottom:5px}
   .tip .wiki{margin-bottom:10px}
+  .id-feature{margin-bottom:8px;padding:8px 10px;background:rgba(124,174,84,.12);border-left:3px solid var(--leaf,#7cae54);border-radius:6px}
   .tip .checklist{list-style:none;display:flex;flex-wrap:wrap;gap:7px}
   .tip .checklist li{font-size:12.5px;font-weight:600;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:6px 10px;color:var(--ink-soft)}
   .tip a{color:var(--forest);font-weight:700}
@@ -162,8 +163,6 @@
           <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
           Continue with Google
         </button>
-        <div class="divider">or</div>
-        <button class="btn-primary" id="emailBtn">Sign in / Sign up with email</button>
         <div class="auth-msg" id="authMsg"></div>
       </div>
       <p class="fine">You'll be taken to a secure AWS sign-in page. Your progress is stored in the cloud, so it follows you across phone and laptop.</p>
@@ -787,12 +786,12 @@ function renderTipCards(tips){
     `<div class="id-tip"><span class="ico">${f.ico}</span><div class="body"><span class="cat">${f.cat}</span><span class="desc">${escapeHtml(tips[f.key])}</span></div></div>`
   ).join("");
 }
-async function fetchTipsFromApi(taxonId,genusName,famName,sciName,commonName){
+async function fetchTipsFromApi(taxonId,genusName,famName,sciName,commonName,wikiText){
   const cacheKey=`sprout_tips_${taxonId}`;
   try{const c=sessionStorage.getItem(cacheKey);if(c)return JSON.parse(c);}catch(e){}
   try{
     const tok=await validIdToken();if(!tok)return null;
-    const p=new URLSearchParams({genus:genusName||"",family:famName||"",sci:sciName||"",common:commonName||""});
+    const p=new URLSearchParams({genus:genusName||"",family:famName||"",sci:sciName||"",common:commonName||"",wiki:(wikiText||"").slice(0,1800)});
     const r=await fetch(`${cfg.API_BASE}/tips?${p}`,{headers:{Authorization:"Bearer "+tok}});
     if(!r.ok)return null;
     const tips=await r.json();
@@ -814,20 +813,35 @@ async function loadTaxonDetail(id){
     if(!genusName&&t.name) genusName=t.name.split(" ")[0];
     const ft=$("#famTag");if(ft)ft.textContent=fam?("Family · "+fam):"";
     const wt=$("#wikiText");
-    if(wt){
-      if(t.wikipedia_summary){const clean=stripTags(t.wikipedia_summary);const trimmed=clean.length>460?clean.slice(0,460).replace(/\s+\S*$/,"")+"…":clean;wt.innerHTML=escapeHtml(trimmed)+(t.wikipedia_url?` <a href="${t.wikipedia_url}" target="_blank" rel="noopener">read more</a>`:"");}
-      else wt.textContent="No field notes for this one — study the photo carefully, then look it up to lock it in.";
-    }
+    const rawWiki=t.wikipedia_summary?stripTags(t.wikipedia_summary):"";
+    const wikiUrl=t.wikipedia_url||"";
+    const wikiLink=wikiUrl?` <a href="${wikiUrl}" target="_blank" rel="noopener">Wikipedia ↗</a>`:"";
+    if(wt) wt.textContent=rawWiki?"Summarising field notes…":"No field notes for this one — study the photo carefully, then look it up to lock it in.";
+
     const staticTips=TREE_TIPS[genusName]||TREE_TIPS[famName];
     const el=$("#idTips");
-    if(!el)return;
-    if(staticTips){
-      el.innerHTML=renderTipCards(staticTips);
-    }else{
-      el.innerHTML=`<span style="font-size:13px;color:var(--ink-soft);font-style:italic">Generating ID tips…</span>`;
-      const apiTips=await fetchTipsFromApi(id,genusName,famName,t.name,t.preferred_common_name||t.name);
-      if(!el.isConnected)return;
-      el.innerHTML=apiTips&&Object.keys(apiTips).length
+    if(staticTips) el.innerHTML=renderTipCards(staticTips);
+    else if(el) el.innerHTML=`<span style="font-size:13px;color:var(--ink-soft);font-style:italic">Generating ID tips…</span>`;
+
+    // Call the API when we need ID tips and/or a Wikipedia summary.
+    const apiTips=(!staticTips||rawWiki)
+      ?await fetchTipsFromApi(id,genusName,famName,t.name,t.preferred_common_name||t.name,rawWiki)
+      :null;
+
+    if(wt&&wt.isConnected){
+      if(apiTips&&(apiTips.summary||apiTips.id_feature)){
+        const feature=apiTips.id_feature?`<div class="id-feature"><strong>🔑 Key feature:</strong> ${escapeHtml(apiTips.id_feature)}</div>`:"";
+        const summary=apiTips.summary?escapeHtml(apiTips.summary):"";
+        wt.innerHTML=feature+summary+wikiLink;
+      }else if(rawWiki){
+        // DeepSeek summary unavailable — fall back to a trimmed extract + link.
+        const trimmed=rawWiki.length>460?rawWiki.slice(0,460).replace(/\s+\S*$/,"")+"…":rawWiki;
+        wt.innerHTML=escapeHtml(trimmed)+(wikiUrl?` <a href="${wikiUrl}" target="_blank" rel="noopener">read more</a>`:"");
+      }
+    }
+
+    if(!staticTips&&el&&el.isConnected){
+      el.innerHTML=apiTips&&ID_TIP_FIELDS.some(f=>apiTips[f.key])
         ?renderTipCards(apiTips)
         :`<div class="id-tip"><span class="ico">🔍</span><div class="body"><span class="desc">Look for: leaf shape &amp; arrangement, bark texture, any fruit or cones, and the overall silhouette.</span></div></div>`;
     }
@@ -896,7 +910,6 @@ function showError(msg){showLoader(false);hide("#qbody");hide("#feedback");$("#e
 
 /* ---------- wiring ---------- */
 $("#googleBtn").onclick=()=>startLogin("Google");
-$("#emailBtn").onclick=()=>startLogin(null);
 $("#logoutLink").onclick=logout;
 $("#openForest").onclick=openForest;
 $("#closeForest").onclick=closeForest;
