@@ -782,6 +782,24 @@ const ID_TIP_FIELDS=[
   {ico:"📐",cat:"Form",key:"form"},
   {ico:"💡",cat:"Fun Fact",key:"fact"}
 ];
+function renderTipCards(tips){
+  return ID_TIP_FIELDS.filter(f=>tips[f.key]).map(f=>
+    `<div class="id-tip"><span class="ico">${f.ico}</span><div class="body"><span class="cat">${f.cat}</span><span class="desc">${escapeHtml(tips[f.key])}</span></div></div>`
+  ).join("");
+}
+async function fetchTipsFromApi(taxonId,genusName,famName,sciName,commonName){
+  const cacheKey=`sprout_tips_${taxonId}`;
+  try{const c=sessionStorage.getItem(cacheKey);if(c)return JSON.parse(c);}catch(e){}
+  try{
+    const tok=await validIdToken();if(!tok)return null;
+    const p=new URLSearchParams({genus:genusName||"",family:famName||"",sci:sciName||"",common:commonName||""});
+    const r=await fetch(`${cfg.API_BASE}/tips?${p}`,{headers:{Authorization:"Bearer "+tok}});
+    if(!r.ok)return null;
+    const tips=await r.json();
+    try{sessionStorage.setItem(cacheKey,JSON.stringify(tips));}catch(e){}
+    return tips;
+  }catch(e){return null;}
+}
 async function loadTaxonDetail(id){
   try{
     const r=await fetch(`${API_INAT}/taxa/${id}`);const d=await r.json();
@@ -800,16 +818,18 @@ async function loadTaxonDetail(id){
       if(t.wikipedia_summary){const clean=stripTags(t.wikipedia_summary);const trimmed=clean.length>460?clean.slice(0,460).replace(/\s+\S*$/,"")+"…":clean;wt.innerHTML=escapeHtml(trimmed)+(t.wikipedia_url?` <a href="${t.wikipedia_url}" target="_blank" rel="noopener">read more</a>`:"");}
       else wt.textContent="No field notes for this one — study the photo carefully, then look it up to lock it in.";
     }
-    const tips=TREE_TIPS[genusName]||TREE_TIPS[famName];
+    const staticTips=TREE_TIPS[genusName]||TREE_TIPS[famName];
     const el=$("#idTips");
-    if(el){
-      if(tips){
-        el.innerHTML=ID_TIP_FIELDS.filter(f=>tips[f.key]).map(f=>
-          `<div class="id-tip"><span class="ico">${f.ico}</span><div class="body"><span class="cat">${f.cat}</span><span class="desc">${escapeHtml(tips[f.key])}</span></div></div>`
-        ).join("");
-      }else{
-        el.innerHTML=`<div class="id-tip"><span class="ico">🔍</span><div class="body"><span class="desc">Look for: leaf shape &amp; arrangement, bark texture, any fruit or cones, and the overall silhouette.</span></div></div>`;
-      }
+    if(!el)return;
+    if(staticTips){
+      el.innerHTML=renderTipCards(staticTips);
+    }else{
+      el.innerHTML=`<span style="font-size:13px;color:var(--ink-soft);font-style:italic">Generating ID tips…</span>`;
+      const apiTips=await fetchTipsFromApi(id,genusName,famName,t.name,t.preferred_common_name||t.name);
+      if(!el.isConnected)return;
+      el.innerHTML=apiTips&&Object.keys(apiTips).length
+        ?renderTipCards(apiTips)
+        :`<div class="id-tip"><span class="ico">🔍</span><div class="body"><span class="desc">Look for: leaf shape &amp; arrangement, bark texture, any fruit or cones, and the overall silhouette.</span></div></div>`;
     }
   }catch(e){
     const wt=$("#wikiText");if(wt)wt.textContent="(Couldn't load extra notes.)";

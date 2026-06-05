@@ -39,8 +39,11 @@ export class SproutStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '..', '..', 'lambda')),
-      environment: { TABLE_NAME: table.tableName },
-      timeout: cdk.Duration.seconds(10),
+      environment: {
+        TABLE_NAME: table.tableName,
+        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? '',
+      },
+      timeout: cdk.Duration.seconds(20),
     });
     table.grantReadWriteData(fn);
 
@@ -120,10 +123,17 @@ export class SproutStack extends cdk.Stack {
         allowHeaders: ['authorization', 'content-type'],
       },
     });
+    const integration = new HttpLambdaIntegration('LambdaIntegration', fn);
     httpApi.addRoutes({
       path: '/progress',
       methods: [HttpMethod.GET, HttpMethod.PUT],
-      integration: new HttpLambdaIntegration('ProgressIntegration', fn),
+      integration,
+      authorizer,
+    });
+    httpApi.addRoutes({
+      path: '/tips',
+      methods: [HttpMethod.GET],
+      integration,
       authorizer,
     });
 
