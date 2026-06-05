@@ -43,5 +43,5 @@ jobs:
           if [ "${{ github.ref_name }}" = "main" ]; then
             npx cdk deploy SproutProd --require-approval never
           else
-            npx cdk deploy SproutDev --require-approval never
+            npx cdk deploy SproutCert SproutDev --require-approval never
           fi
