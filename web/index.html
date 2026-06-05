@@ -94,6 +94,7 @@
   .tip{font-size:14.5px;line-height:1.55}
   .tip h4{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--terracotta-deep);font-weight:800;margin-bottom:5px}
   .tip .wiki{margin-bottom:10px}
+  .id-feature{margin-bottom:8px;padding:8px 10px;background:rgba(124,174,84,.12);border-left:3px solid var(--leaf,#7cae54);border-radius:6px}
   .tip .checklist{list-style:none;display:flex;flex-wrap:wrap;gap:7px}
   .tip .checklist li{font-size:12.5px;font-weight:600;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:6px 10px;color:var(--ink-soft)}
   .tip a{color:var(--forest);font-weight:700}
@@ -828,8 +829,10 @@ async function loadTaxonDetail(id){
       :null;
 
     if(wt&&wt.isConnected){
-      if(apiTips&&apiTips.summary){
-        wt.innerHTML=escapeHtml(apiTips.summary)+wikiLink;
+      if(apiTips&&(apiTips.summary||apiTips.id_feature)){
+        const feature=apiTips.id_feature?`<div class="id-feature"><strong>🔑 Key feature:</strong> ${escapeHtml(apiTips.id_feature)}</div>`:"";
+        const summary=apiTips.summary?escapeHtml(apiTips.summary):"";
+        wt.innerHTML=feature+summary+wikiLink;
       }else if(rawWiki){
         // DeepSeek summary unavailable — fall back to a trimmed extract + link.
         const trimmed=rawWiki.length>460?rawWiki.slice(0,460).replace(/\s+\S*$/,"")+"…":rawWiki;
