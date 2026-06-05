@@ -47,7 +47,14 @@
   .cat .cd{font-size:13px;color:var(--ink-soft);margin-top:1px}
   .cat .arrow{margin-left:auto;color:var(--leaf);font-size:20px;font-weight:800}
   .region-note{font-size:12.5px;color:var(--ink-soft);background:var(--paper-2);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-weight:600}
-  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+  header{display:flex;align-items:stretch;gap:12px;margin-bottom:10px}
+  .forest-header{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+  .forest-header .forest-scene{flex:1;border-radius:10px;overflow:hidden;border:1.5px solid var(--line);box-shadow:0 2px 8px rgba(31,63,40,.12)}
+  .forest-header .forest-scene svg{display:block;width:100%;height:100%}
+  .forest-header .progress-wrap{margin:0}
+  .forest-header .progress-lbl{display:flex;justify-content:space-between;font-size:10px;font-weight:700;color:var(--ink-soft);margin-bottom:2px}
+  .forest-header .progress-bar{height:5px;background:var(--paper-2);border:1px solid var(--line);border-radius:999px;overflow:hidden}
+  .forest-header .progress-fill{height:100%;background:linear-gradient(90deg,#7cae54,#2f5d3a);border-radius:999px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
   .userbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;font-size:13px;color:var(--ink-soft)}
   .userbar .who{font-weight:700;color:var(--ink);display:flex;align-items:center;gap:6px;max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .userbar .mode{background:var(--paper-2);border:1px solid var(--line);border-radius:999px;padding:4px 11px;font-weight:700}
@@ -106,13 +113,6 @@
   .next:active{transform:translateY(2px);box-shadow:0 2px 0 var(--forest-deep)}
   .err{padding:30px 20px;text-align:center;color:var(--ink-soft);display:none}
   .err button{margin-top:14px;font-weight:700;background:var(--paper-2);border:1.5px solid var(--line);padding:10px 18px;border-radius:12px;cursor:pointer}
-  .forest-panel{margin:0 0 10px}
-  .forest-scene{border-radius:14px;overflow:hidden;border:1.5px solid var(--line);box-shadow:0 2px 12px rgba(31,63,40,.13)}
-  .forest-scene svg{display:block;width:100%;height:auto}
-  .progress-wrap{margin:7px 2px 0}
-  .progress-lbl{display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:4px}
-  .progress-bar{height:8px;background:var(--paper-2);border:1px solid var(--line);border-radius:999px;overflow:hidden}
-  .progress-fill{height:100%;background:linear-gradient(90deg,#7cae54,#2f5d3a);border-radius:999px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
   .reset-wrap{text-align:center;padding:12px 0 4px}
   .reset{display:block;margin:0 auto 22px;font-size:12px;color:var(--ink-soft);background:none;border:none;text-decoration:underline;cursor:pointer}
   .toast{position:fixed;left:50%;top:18px;transform:translateX(-50%) translateY(-160%);z-index:80;background:var(--forest-deep);color:#fff;padding:13px 20px;border-radius:14px;font-weight:700;font-size:15px;box-shadow:0 8px 24px rgba(0,0,0,.25);display:flex;align-items:center;gap:9px;transition:transform .45s cubic-bezier(.2,1.3,.4,1);max-width:90vw}
@@ -168,6 +168,13 @@
         </svg>
         <div><h1>Sprout</h1><div class="sub">PNW Field Guide</div></div>
       </div>
+      <div class="forest-header">
+        <div class="forest-scene" id="forestScene"></div>
+        <div class="progress-wrap">
+          <div class="progress-lbl"><span>Next tree</span><span id="progLbl">0 / 4</span></div>
+          <div class="progress-bar"><div class="progress-fill" id="progFill" style="width:0%"></div></div>
+        </div>
+      </div>
     </header>
     <div class="userbar">
       <span class="who">👤 <span id="whoName">—</span></span>
@@ -178,13 +185,6 @@
       <div class="stat"><div class="num" id="sScore">0</div><div class="lbl">Points</div></div>
       <div class="stat streak"><div class="num" id="sStreak">0</div><div class="lbl">Streak</div></div>
       <div class="stat"><div class="num" id="sAcc">—</div><div class="lbl">Accuracy</div></div>
-    </div>
-    <div class="forest-panel">
-      <div class="forest-scene" id="forestScene"></div>
-      <div class="progress-wrap">
-        <div class="progress-lbl"><span>Next tree</span><span id="progLbl">0 / 4</span></div>
-        <div class="progress-bar"><div class="progress-fill" id="progFill" style="width:0%"></div></div>
-      </div>
     </div>
     <div class="card">
       <div class="photo-frame" id="frame">
@@ -846,72 +846,64 @@ function buildForest(){
 }
 function rng(seed){let x=Math.sin(seed*99.7)*10000;return x-Math.floor(x);}
 function renderForestSVG(n){
-  const W=640,H=220,ground=H-34;
-  // Defs
-  let s=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"><defs>
-    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8fb5cc"/><stop offset="60%" stop-color="#b8d4e0"/><stop offset="100%" stop-color="#d4e8cc"/></linearGradient>
-    <linearGradient id="grnd" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6b9a50"/><stop offset="100%" stop-color="#4a7338"/></linearGradient>
-    <linearGradient id="mtn" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e8f0f4"/><stop offset="35%" stop-color="#c5d8e2"/><stop offset="100%" stop-color="#7a9ea8"/></linearGradient>
-    <filter id="mist"><feGaussianBlur stdDeviation="3"/></filter>
+  const W=400,H=80,G=H-12; // G = ground line y
+  let s=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet"><defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7aafc4"/><stop offset="100%" stop-color="#c8e0cc"/></linearGradient>
+    <linearGradient id="grnd" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#5c9042"/><stop offset="100%" stop-color="#3d6a2c"/></linearGradient>
+    <linearGradient id="mtn" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ddeaf0"/><stop offset="100%" stop-color="#8eaebc"/></linearGradient>
   </defs>`;
-  // Sky
   s+=`<rect width="${W}" height="${H}" fill="url(#sky)"/>`;
   // Sun
-  s+=`<circle cx="580" cy="38" r="22" fill="#f5e090" opacity=".85"/>`;
-  s+=`<circle cx="580" cy="38" r="30" fill="#f5e090" opacity=".2"/>`;
-  // Distant mountains
-  s+=`<path d="M0 ${ground-60} L80 ${ground-130} L160 ${ground-70} L240 ${ground-145} L340 ${ground-90} L420 ${ground-155} L510 ${ground-80} L580 ${ground-135} L640 ${ground-75} L640 ${ground} L0 ${ground} Z" fill="url(#mtn)" opacity=".55"/>`;
-  // Mist layer over mountains
-  s+=`<rect x="0" y="${ground-75}" width="${W}" height="50" fill="#cfe8ef" opacity=".22" filter="url(#mist)"/>`;
+  s+=`<circle cx="${W-22}" cy="16" r="11" fill="#f5e090" opacity=".9"/>`;
+  // Mountains (simple, distant)
+  s+=`<path d="M0 ${G-8} L55 ${G-36} L110 ${G-14} L180 ${G-42} L250 ${G-18} L320 ${G-38} L390 ${G-12} L${W} ${G-22} L${W} ${G} L0 ${G} Z" fill="url(#mtn)" opacity=".5"/>`;
   // Ground
-  s+=`<rect y="${ground}" width="${W}" height="${H-ground}" fill="url(#grnd)"/>`;
-  s+=`<path d="M0 ${ground} Q${W*0.25} ${ground-6} ${W*0.5} ${ground} T${W} ${ground}" fill="#7fb85a" opacity=".45"/>`;
+  s+=`<rect y="${G}" width="${W}" height="${H-G}" fill="url(#grnd)"/>`;
   if(n<=0){
-    s+=`<text x="${W/2}" y="${ground-22}" text-anchor="middle" font-family="Fraunces,serif" font-size="18" fill="#3a5a2a" font-style="italic">An empty meadow… for now.</text>`;
-    s+=`<text x="${W/2}" y="${ground-4}" text-anchor="middle" font-family="Hanken Grotesk,sans-serif" font-size="12" fill="#4a6438">Get 4 correct IDs to grow your first tree.</text>`;
-    // grass tufts
-    for(let i=0;i<8;i++){const x=50+i*76;s+=`<path d="M${x} ${ground} q-2-9 0-14 q2 5 0 14 M${x+5} ${ground} q-2-7 0-11 q2 4 0 11" stroke="#5a8a3a" stroke-width="1.2" fill="none"/>`;}
+    s+=`<text x="${W/2}" y="${G-14}" text-anchor="middle" font-family="Fraunces,serif" font-size="11" fill="#3a5a2a" font-style="italic">An empty meadow… get 4 right to grow your first tree.</text>`;
+    for(let i=0;i<10;i++){const gx=20+i*38;s+=`<path d="M${gx} ${G} q-1-5 0-8 q1 3 0 8 M${gx+4} ${G} q-1-4 0-6 q1 2 0 6" stroke="#4a7a32" stroke-width="1" fill="none"/>`;}
     return s+`</svg>`;
   }
-  const cap=Math.min(n,48);
-  // Sort: back row first (row 0), then middle (1), then front (2)
+  const cap=Math.min(n,36);
   const trees=[];
   for(let i=0;i<cap;i++){
-    const r=rng(i+1),r2=rng(i+7),r3=rng(i+13),r4=rng(i+23);
+    const r=rng(i+1),r2=rng(i+5),r3=rng(i+11);
     const row=i%3;
-    const rowScale=[0.52,0.7,0.92][row];
-    const rowY=[ground-78,ground-52,ground-20][row];
-    const x=24+((i*211+Math.floor(r*80))%(W-48));
-    const y=rowY+r2*10;
-    trees.push({x,y,scale:rowScale*(0.82+r3*0.36),r:r4,row,shadow:[0.55,0.72,0.92][row]});
+    // Scale: back small, front large
+    const sc=[0.45,0.65,0.9][row]*(0.85+r2*0.3);
+    // Trunk height for this tree
+    const tH=Math.round(52*sc);
+    const tW=Math.max(2,Math.round(4*sc));
+    // Ground the trunk: trunk rect goes from -tH*0.2 to +tH*0.05 in local space.
+    // We want local y=0 to sit at G so trunk bottom (tH*0.05) is at G+tH*0.05 —
+    // actually set local origin so trunk bottom = G exactly: y = G - tH*0.05
+    const y=G-Math.round(tH*0.05);
+    const x=16+((i*137+Math.floor(r*60))%(W-32));
+    const op=[0.6,0.78,1][row];
+    trees.push({x,y,sc,r:r3,op,tH,tW,row});
   }
   trees.sort((a,b)=>a.row-b.row);
-  for(const t of trees) s+=pnwTree(t.x,t.y,t.scale,t.r,t.shadow);
-  if(n>48)s+=`<text x="${W-10}" y="18" text-anchor="end" font-family="Hanken Grotesk,sans-serif" font-size="12" fill="#2a4a22" opacity=".7">+${n-48} more</text>`;
+  for(const t of trees) s+=pnwTree(t.x,t.y,t.sc,t.r,t.op,t.tH,t.tW);
+  if(n>36)s+=`<text x="${W-6}" y="12" text-anchor="end" font-family="Hanken Grotesk,sans-serif" font-size="9" fill="#2a4a22" opacity=".8">+${n-36} more</text>`;
   return s+`</svg>`;
 }
-function pnwTree(x,y,scale,r,opacity){
-  // Proper conical PNW conifer — layered tiers, not blobs
-  const tH=Math.round(75*scale),tW=Math.round(5*scale);
-  const tiers=4;
-  // Colour variants: dark forest, mid, lighter tip
-  const greens=[["#2d5a22","#3d7a30","#4f9a3e"],["#1f4a1a","#2f6828","#3f8834"],["#355e28","#477d38","#5a9b48"]];
-  const palette=greens[Math.floor(r*greens.length)];
+function pnwTree(x,y,scale,r,opacity,tH,tW){
+  const greens=[["#2a5420","#3a7230","#4e9040"],["#1e4818","#2c6226","#3c8030"],["#324e24","#447035","#589044"]];
+  const pal=greens[Math.floor(r*greens.length)];
   let g=`<g transform="translate(${x} ${y})" opacity="${opacity}">`;
-  // Trunk
-  g+=`<rect x="${-tW/2}" y="${-tH*0.18}" width="${tW}" height="${tH*0.22}" rx="${tW*0.4}" fill="#6b4423"/>`;
-  // Tiers from bottom to top — each a slightly rotated triangle with drooping tip suggestion
+  // Trunk — bottom at y=tH*0.05 in local space, so it sits on G
+  g+=`<rect x="${-tW/2}" y="${-tH*0.22}" width="${tW}" height="${tH*0.27}" rx="${tW*0.4}" fill="#6b4423"/>`;
+  // 4 tiered triangles, bottom-up
+  const tiers=4;
   for(let t=0;t<tiers;t++){
-    const frac=1-(t/tiers);
-    const tierW=Math.round((28+t*2)*scale*frac);
-    const tierH=Math.round((26+t*3)*scale*frac);
-    const topY=-tH*0.18-(t/tiers)*tH*0.82-tierH*0.6;
-    const shade=t===tiers-1?palette[2]:t===0?palette[0]:palette[1];
-    const shade2=t===0?palette[0]:palette[1];
-    // Main triangle tier
-    g+=`<polygon points="0,${topY-tierH} ${-tierW},${topY} ${tierW},${topY}" fill="${shade}"/>`;
-    // Slightly wider underlay for depth
-    if(t<tiers-1)g+=`<polygon points="0,${topY-tierH*0.55} ${-(tierW*1.12)},${topY+tierH*0.12} ${tierW*1.12},${topY+tierH*0.12}" fill="${shade2}" opacity=".6"/>`;
+    const frac=1-t/tiers;
+    const tw=Math.round((22+t*1.5)*scale*frac);
+    const th=Math.round((20+t*2)*scale*frac);
+    // Stack tiers: tier 0 base at -tH*0.22, each tier placed above previous
+    const baseY=-tH*0.22-(t/tiers)*tH*0.78;
+    const shade=t===tiers-1?pal[2]:t===0?pal[0]:pal[1];
+    g+=`<polygon points="0,${baseY-th} ${-tw},${baseY} ${tw},${baseY}" fill="${shade}"/>`;
+    if(t<tiers-1)g+=`<polygon points="0,${baseY-th*0.5} ${-tw*1.15},${baseY+th*0.1} ${tw*1.15},${baseY+th*0.1}" fill="${t===0?pal[0]:pal[1]}" opacity=".55"/>`;
   }
   g+=`</g>`;
   return g;
