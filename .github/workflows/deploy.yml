@@ -41,7 +41,10 @@ jobs:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         run: |
           if [ "${{ github.ref_name }}" = "main" ]; then
-            npx cdk deploy SproutProd --require-approval never
+            # Release the custom domain from SproutDev first (frees the
+            # CloudFront CNAME + Route 53 records), then claim it on SproutProd.
+            npx cdk deploy SproutDev --require-approval never
+            npx cdk deploy SproutCert SproutProd --require-approval never
           else
-            npx cdk deploy SproutCert SproutDev --require-approval never
+            npx cdk deploy SproutDev --require-approval never
           fi
