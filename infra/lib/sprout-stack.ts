@@ -7,6 +7,9 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
+import * as acm from 'aws-cdk-lib/aws-certificatemanager';
+import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import { HttpApi, HttpMethod, CorsHttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { HttpJwtAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
@@ -16,6 +19,13 @@ export interface SproutStackProps extends cdk.StackProps {
   envName: 'dev' | 'prod';
   googleClientId?: string;
   googleClientSecret?: string;
+  // Optional custom-domain wiring. When all are provided, the CloudFront
+  // distribution serves the domain over HTTPS and Route 53 alias records
+  // are created. The certificate must live in us-east-1 (see SproutCertStack).
+  certificate?: acm.ICertificate;
+  domainName?: string;
+  wwwName?: string;
+  hostedZoneId?: string;
 }
 
 export class SproutStack extends cdk.Stack {
@@ -54,19 +64,54 @@ export class SproutStack extends cdk.Stack {
       removalPolicy: removal,
       autoDeleteObjects: !isProd,
     });
+    // Custom domain is wired only when the cert + domain + zone are all supplied.
+    const hasCustomDomain = Boolean(
+      props.certificate && props.domainName && props.wwwName && props.hostedZoneId,
+    );
     const distribution = new cloudfront.Distribution(this, 'SiteCDN', {
       defaultRootObject: 'index.html',
       defaultBehavior: {
         origin: origins.S3BucketOrigin.withOriginAccessControl(siteBucket),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
       },
+      ...(hasCustomDomain
+        ? {
+            domainNames: [props.domainName!, props.wwwName!],
+            certificate: props.certificate,
+          }
+        : {}),
     });
     const siteUrl = `https://${distribution.distributionDomainName}`;
+
+    // When a custom domain is configured, the apex becomes the primary URL the
+    // frontend redirects to, but the CloudFront URL and the www host must also
+    // be trusted by Cognito (callback/logout) and CORS.
+    const customApexUrl = hasCustomDomain ? `https://${props.domainName}` : undefined;
+    const customWwwUrl = hasCustomDomain ? `https://${props.wwwName}` : undefined;
+    const primarySiteUrl = customApexUrl ?? siteUrl;
+    const allSiteUrls = [siteUrl, customApexUrl, customWwwUrl].filter(Boolean) as string[];
+
+    // ---------- DNS: Route 53 alias records for the custom domain ----------
+    if (hasCustomDomain) {
+      const zone = route53.HostedZone.fromHostedZoneAttributes(this, 'Zone', {
+        hostedZoneId: props.hostedZoneId!,
+        zoneName: props.domainName!,
+      });
+      const alias = route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(distribution));
+      new route53.ARecord(this, 'ApexA', { zone, target: alias });
+      new route53.AaaaRecord(this, 'ApexAAAA', { zone, target: alias });
+      new route53.ARecord(this, 'WwwA', { zone, recordName: 'www', target: alias });
+      new route53.AaaaRecord(this, 'WwwAAAA', { zone, recordName: 'www', target: alias });
+    }
 
     // ---------- AUTH: Cognito user pool + managed login + (optional) Google ----------
     const userPool = new cognito.UserPool(this, 'UserPool', {
       userPoolName: `Sprout-${envName}`,
-      selfSignUpEnabled: true,
+      // selfSignUpEnabled is mutable; signInAliases maps to the IMMUTABLE
+      // UsernameAttributes, so it must stay exactly as the pool was created.
+      // Google-only login is enforced at the app-client level instead
+      // (supportedIdentityProviders below) plus the frontend.
+      selfSignUpEnabled: false,
       signInAliases: { email: true },
       autoVerify: { email: true },
       standardAttributes: {
@@ -80,7 +125,9 @@ export class SproutStack extends cdk.Stack {
     userPool.addDomain('Domain', { cognitoDomain: { domainPrefix } });
     const cognitoDomain = `${domainPrefix}.auth.${this.region}.amazoncognito.com`;
 
-    const providers = [cognito.UserPoolClientIdentityProvider.COGNITO];
+    // Google is the only supported sign-in method. Fall back to the native
+    // Cognito provider only if Google credentials are not configured, so the
+    // pool is never left with zero providers.
     let googleProvider: cognito.UserPoolIdentityProviderGoogle | undefined;
     if (props.googleClientId && props.googleClientSecret) {
       googleProvider = new cognito.UserPoolIdentityProviderGoogle(this, 'Google', {
@@ -93,8 +140,10 @@ export class SproutStack extends cdk.Stack {
           fullname: cognito.ProviderAttribute.GOOGLE_NAME,
         },
       });
-      providers.push(cognito.UserPoolClientIdentityProvider.GOOGLE);
     }
+    const providers = googleProvider
+      ? [cognito.UserPoolClientIdentityProvider.GOOGLE]
+      : [cognito.UserPoolClientIdentityProvider.COGNITO];
 
     const client = userPool.addClient('WebClient', {
       userPoolClientName: `sprout-web-${envName}`,
@@ -102,8 +151,8 @@ export class SproutStack extends cdk.Stack {
       oAuth: {
         flows: { authorizationCodeGrant: true },
         scopes: [cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL, cognito.OAuthScope.PROFILE],
-        callbackUrls: [`${siteUrl}/`],
-        logoutUrls: [`${siteUrl}/`],
+        callbackUrls: allSiteUrls.map((u) => `${u}/`),
+        logoutUrls: allSiteUrls.map((u) => `${u}/`),
       },
       supportedIdentityProviders: providers,
     });
@@ -118,7 +167,7 @@ export class SproutStack extends cdk.Stack {
     const httpApi = new HttpApi(this, 'Api', {
       apiName: `sprout-api-${envName}`,
       corsPreflight: {
-        allowOrigins: [siteUrl],
+        allowOrigins: allSiteUrls,
         allowMethods: [CorsHttpMethod.GET, CorsHttpMethod.PUT, CorsHttpMethod.OPTIONS],
         allowHeaders: ['authorization', 'content-type'],
       },
@@ -144,7 +193,7 @@ export class SproutStack extends cdk.Stack {
       `  CLIENT_ID: "${client.userPoolClientId}",`,
       `  COGNITO_DOMAIN: "${cognitoDomain}",`,
       `  API_BASE: "${httpApi.apiEndpoint}",`,
-      `  REDIRECT_URI: "${siteUrl}/"`,
+      `  REDIRECT_URI: "${primarySiteUrl}/"`,
       '};',
     ].join('\n');
 
@@ -159,7 +208,7 @@ export class SproutStack extends cdk.Stack {
     });
 
     // ---------- OUTPUTS ----------
-    new cdk.CfnOutput(this, 'SiteURL', { value: `${siteUrl}/` });
+    new cdk.CfnOutput(this, 'SiteURL', { value: `${primarySiteUrl}/` });
     new cdk.CfnOutput(this, 'GoogleRedirectURI', {
       value: `https://${cognitoDomain}/oauth2/idpresponse`,
     });
