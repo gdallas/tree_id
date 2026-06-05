@@ -107,8 +107,13 @@ export class SproutStack extends cdk.Stack {
     // ---------- AUTH: Cognito user pool + managed login + (optional) Google ----------
     const userPool = new cognito.UserPool(this, 'UserPool', {
       userPoolName: `Sprout-${envName}`,
-      // Google federation only — no native email/password sign-up.
+      // selfSignUpEnabled is mutable; signInAliases maps to the IMMUTABLE
+      // UsernameAttributes, so it must stay exactly as the pool was created.
+      // Google-only login is enforced at the app-client level instead
+      // (supportedIdentityProviders below) plus the frontend.
       selfSignUpEnabled: false,
+      signInAliases: { email: true },
+      autoVerify: { email: true },
       standardAttributes: {
         email: { required: true, mutable: true },
         fullname: { required: false, mutable: true },
