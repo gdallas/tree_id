@@ -35,9 +35,18 @@ const certStack = new SproutCertStack(app, 'SproutCert', {
   hostedZoneId,
 });
 
+// SproutDev is the staging stack — no custom domain.
 new SproutStack(app, 'SproutDev', {
   env,
   envName: 'dev',
+  googleClientId,
+  googleClientSecret,
+});
+
+// SproutProd serves which-plant.com over HTTPS (cert referenced cross-region).
+new SproutStack(app, 'SproutProd', {
+  env,
+  envName: 'prod',
   googleClientId,
   googleClientSecret,
   crossRegionReferences: true,
@@ -46,4 +55,3 @@ new SproutStack(app, 'SproutDev', {
   wwwName,
   hostedZoneId,
 });
-new SproutStack(app, 'SproutProd', { env, envName: 'prod', googleClientId, googleClientSecret });
