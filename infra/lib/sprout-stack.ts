@@ -107,9 +107,8 @@ export class SproutStack extends cdk.Stack {
     // ---------- AUTH: Cognito user pool + managed login + (optional) Google ----------
     const userPool = new cognito.UserPool(this, 'UserPool', {
       userPoolName: `Sprout-${envName}`,
-      selfSignUpEnabled: true,
-      signInAliases: { email: true },
-      autoVerify: { email: true },
+      // Google federation only — no native email/password sign-up.
+      selfSignUpEnabled: false,
       standardAttributes: {
         email: { required: true, mutable: true },
         fullname: { required: false, mutable: true },
@@ -121,7 +120,9 @@ export class SproutStack extends cdk.Stack {
     userPool.addDomain('Domain', { cognitoDomain: { domainPrefix } });
     const cognitoDomain = `${domainPrefix}.auth.${this.region}.amazoncognito.com`;
 
-    const providers = [cognito.UserPoolClientIdentityProvider.COGNITO];
+    // Google is the only supported sign-in method. Fall back to the native
+    // Cognito provider only if Google credentials are not configured, so the
+    // pool is never left with zero providers.
     let googleProvider: cognito.UserPoolIdentityProviderGoogle | undefined;
     if (props.googleClientId && props.googleClientSecret) {
       googleProvider = new cognito.UserPoolIdentityProviderGoogle(this, 'Google', {
@@ -134,8 +135,10 @@ export class SproutStack extends cdk.Stack {
           fullname: cognito.ProviderAttribute.GOOGLE_NAME,
         },
       });
-      providers.push(cognito.UserPoolClientIdentityProvider.GOOGLE);
     }
+    const providers = googleProvider
+      ? [cognito.UserPoolClientIdentityProvider.GOOGLE]
+      : [cognito.UserPoolClientIdentityProvider.COGNITO];
 
     const client = userPool.addClient('WebClient', {
       userPoolClientName: `sprout-web-${envName}`,

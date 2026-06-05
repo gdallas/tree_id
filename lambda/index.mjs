@@ -54,16 +54,23 @@ async function handleTips(event) {
   const plantDesc = [common, sci && `(${sci})`, genus && `genus ${genus}`, family && `family ${family}`]
     .filter(Boolean).join(" ");
 
+  // Optional raw Wikipedia extract to be condensed into a short summary.
+  const wiki = (q.wiki || "").slice(0, 2000).trim();
+  const summaryField = wiki
+    ? `\n  "summary": "2-3 short sentences summarising the Wikipedia text below into digestible field-guide notes; plain prose, no markdown (max 320 chars)",`
+    : "";
+  const wikiBlock = wiki ? `\n\nWikipedia text to summarise for the "summary" field:\n"""${wiki}"""` : "";
+
   const prompt = `You are a botanical field guide expert for the Pacific Northwest. Give field identification tips for: ${plantDesc}.
 
 Reply ONLY with valid JSON — no markdown, no backticks, no explanation:
-{
+{${summaryField}
   "leaves": "leaf shape, arrangement, texture and colour (max 150 chars)",
   "cones": "flowers, cones, fruit or seed description (max 150 chars)",
   "bark": "bark or stem — start with 'No true bark;' for herbaceous plants (max 150 chars)",
   "form": "overall growth habit, typical size and silhouette (max 150 chars)",
   "fact": "one surprising or memorable fact (max 180 chars)"
-}`;
+}${wikiBlock}`;
 
   const r = await fetch("https://api.deepseek.com/chat/completions", {
     method: "POST",
