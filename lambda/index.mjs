@@ -48,7 +48,7 @@ async function handleTips(event) {
   const { genus, family, sci, common } = q;
   if (!sci && !genus) return resp(400, { error: "sci or genus required" });
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) return resp(503, { error: "tips not configured" });
 
   const plantDesc = [common, sci && `(${sci})`, genus && `genus ${genus}`, family && `family ${family}`]
@@ -65,27 +65,26 @@ Reply ONLY with valid JSON — no markdown, no backticks, no explanation:
   "fact": "one surprising or memorable fact (max 180 chars)"
 }`;
 
-  const r = await fetch("https://api.anthropic.com/v1/messages", {
+  const r = await fetch("https://api.deepseek.com/chat/completions", {
     method: "POST",
     headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
+      "Authorization": `Bearer ${apiKey}`,
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
+      model: "deepseek-chat",
       max_tokens: 600,
       messages: [{ role: "user", content: prompt }],
     }),
   });
 
   if (!r.ok) {
-    console.error("Claude error", r.status, await r.text());
+    console.error("DeepSeek error", r.status, await r.text());
     return resp(502, { error: "tips unavailable" });
   }
 
   const d = await r.json();
-  const raw = d.content?.[0]?.text || "{}";
+  const raw = d.choices?.[0]?.message?.content || "{}";
   const cleaned = raw.replace(/^```[a-z]*\n?/, "").replace(/\n?```$/, "").trim();
   try {
     return resp(200, JSON.parse(cleaned));

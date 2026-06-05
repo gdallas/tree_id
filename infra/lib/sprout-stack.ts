@@ -41,7 +41,7 @@ export class SproutStack extends cdk.Stack {
       code: lambda.Code.fromAsset(path.join(__dirname, '..', '..', 'lambda')),
       environment: {
         TABLE_NAME: table.tableName,
-        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? '',
+        DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY ?? '',
       },
       timeout: cdk.Duration.seconds(20),
     });
