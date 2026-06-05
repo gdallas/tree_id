@@ -98,12 +98,13 @@
   .tip .checklist{list-style:none;display:flex;flex-wrap:wrap;gap:7px}
   .tip .checklist li{font-size:12.5px;font-weight:600;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:6px 10px;color:var(--ink-soft)}
   .tip a{color:var(--forest);font-weight:700}
-  .id-tips{display:flex;flex-direction:column;gap:7px;margin-top:4px}
-  .id-tip{display:flex;gap:10px;background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:9px 12px;align-items:flex-start}
-  .id-tip .ico{font-size:15px;flex:none;padding-top:2px;line-height:1}
-  .id-tip .body{display:flex;flex-direction:column;gap:2px}
-  .id-tip .cat{font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--terracotta-deep)}
-  .id-tip .desc{font-size:13px;color:var(--ink);line-height:1.45}
+  .id-tips{display:flex;flex-direction:column;gap:0;margin-top:6px}
+  .id-tip{display:flex;gap:8px;padding:7px 2px;align-items:baseline;border-bottom:1px solid var(--line)}
+  .id-tip:last-child{border-bottom:none}
+  .id-tip .ico{font-size:13px;flex:none;line-height:1.55}
+  .id-tip .body{display:flex;flex-direction:column;gap:1px}
+  .id-tip .cat{font-size:10px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--ink-soft)}
+  .id-tip .desc{font-size:13px;color:var(--ink);line-height:1.5}
   .next{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:16px;color:#fff;background:linear-gradient(180deg,var(--leaf-bright),var(--forest));border:none;border-radius:13px;padding:15px;cursor:pointer;box-shadow:0 4px 0 var(--forest-deep);transition:transform .1s ease;display:flex;align-items:center;justify-content:center;gap:8px}
   .next:active{transform:translateY(2px);box-shadow:0 2px 0 var(--forest-deep)}
   .err{padding:30px 20px;text-align:center;color:var(--ink-soft);display:none}
@@ -775,11 +776,11 @@ function revealFeedback(win,pts){
   show("#feedback","flex"); $("#nextBtn").onclick=nextQuestion; loadTaxonDetail(a.taxonId);
 }
 const ID_TIP_FIELDS=[
+  {ico:"💡",cat:"Fun Fact",key:"fact"},
   {ico:"🍃",cat:"Leaves",key:"leaves"},
   {ico:"🌸",cat:"Cones / Flowers / Fruit",key:"cones"},
   {ico:"🪵",cat:"Bark",key:"bark"},
-  {ico:"📐",cat:"Form",key:"form"},
-  {ico:"💡",cat:"Fun Fact",key:"fact"}
+  {ico:"📐",cat:"Form",key:"form"}
 ];
 function renderTipCards(tips){
   return ID_TIP_FIELDS.filter(f=>tips[f.key]).map(f=>
