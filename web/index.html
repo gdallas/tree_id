@@ -832,19 +832,18 @@ function easyDistractors(answer){
   return out;
 }
 async function fetchRelatedSpecies(ancestorId){
-  // Fetch PNW observations of species that share this ancestor (family or genus taxon ID)
-  const base=buildQueryBase();
-  const r=await fetch(`${base}&taxon_id=${ancestorId}&per_page=80`);
-  if(!r.ok) return [];
-  const d=await r.json();
-  const out=[];
-  for(const o of (d.results||[])){
-    const t=o.taxon; if(!t||!o.photos||!o.photos.length) continue;
-    if(t.rank!=="species"&&t.rank!=="subspecies") continue;
-    const common=t.preferred_common_name?titleCase(t.preferred_common_name):t.name;
-    if(!out.find(x=>x.id===t.id)) out.push({id:t.id,label:common});
-  }
-  return out;
+  // species_counts returns one entry per species — no deduplication needed
+  const {nelat,nelng,swlat,swlng}=PNW;
+  const url=`${API_INAT}/observations/species_counts?taxon_id=${ancestorId}&quality_grade=research&photos=true&nelat=${nelat}&nelng=${nelng}&swlat=${swlat}&swlng=${swlng}&per_page=30`;
+  try{
+    const r=await fetch(url); if(!r.ok) return [];
+    const d=await r.json();
+    return (d.results||[]).map(o=>{
+      const t=o.taxon;
+      const common=t.preferred_common_name?titleCase(t.preferred_common_name):t.name;
+      return {id:t.id,label:common};
+    });
+  }catch(e){ return []; }
 }
 async function getAncestorId(taxonId,rank){
   try{
