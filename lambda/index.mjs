@@ -23,6 +23,7 @@ export const handler = async (event) => {
     }
     if (method === "PUT") {
       const b = JSON.parse(event.body || "{}");
+      const birds = b.birds || {};
       const item = {
         userId: sub,
         score: int(b.score),
@@ -30,7 +31,14 @@ export const handler = async (event) => {
         attempts: int(b.attempts),
         streak: int(b.streak),
         bestStreak: int(b.bestStreak),
-        lastCategory: ["trees", "plants", "both"].includes(b.lastCategory) ? b.lastCategory : "both",
+        birds: {
+          score: int(birds.score),
+          correct: int(birds.correct),
+          attempts: int(birds.attempts),
+          streak: int(birds.streak),
+          bestStreak: int(birds.bestStreak),
+        },
+        lastMode: ["plants", "birds"].includes(b.lastMode) ? b.lastMode : "plants",
         updatedAt: new Date().toISOString(),
       };
       await ddb.send(new PutCommand({ TableName: TABLE, Item: item }));
@@ -51,7 +59,7 @@ async function handleTips(event) {
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) return resp(503, { error: "tips not configured" });
 
-  const plantDesc = [common, sci && `(${sci})`, genus && `genus ${genus}`, family && `family ${family}`]
+  const desc = [common, sci && `(${sci})`, genus && `genus ${genus}`, family && `family ${family}`]
     .filter(Boolean).join(" ");
 
   // Optional raw Wikipedia extract to be condensed into a short summary.
@@ -61,7 +69,20 @@ async function handleTips(event) {
     : "";
   const wikiBlock = wiki ? `\n\nWikipedia text to summarise for the "summary" field:\n"""${wiki}"""` : "";
 
-  const prompt = `You are a botanical field guide expert for the Pacific Northwest. Give field identification tips for: ${plantDesc}.
+  const kind = q.kind === "bird" ? "bird" : "plant";
+  const prompt = kind === "bird"
+    ? `You are an expert ornithologist and birding field guide for the Pacific Northwest. Give field identification tips for: ${desc}.
+
+Reply ONLY with valid JSON — no markdown, no backticks, no explanation:
+{${summaryField}
+  "id_feature": "ONE sentence naming the single most distinctive feature for identifying this bird at a glance (max 160 chars)",
+  "plumage": "key plumage colours, patterns and field marks; note any male/female differences (max 150 chars)",
+  "song": "song or call described in words — what it sounds like (max 150 chars)",
+  "behavior": "characteristic behaviour, flight style, foraging or posture (max 150 chars)",
+  "habitat": "typical PNW habitat and where to look for it (max 150 chars)",
+  "fact": "one surprising or memorable fact (max 180 chars)"
+}${wikiBlock}`
+    : `You are a botanical field guide expert for the Pacific Northwest. Give field identification tips for: ${desc}.
 
 Reply ONLY with valid JSON — no markdown, no backticks, no explanation:
 {${summaryField}
