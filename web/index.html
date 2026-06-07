@@ -33,6 +33,17 @@
   .btn-primary{font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:16px;color:#fff;background:linear-gradient(180deg,var(--leaf-bright),var(--forest));border:none;border-radius:13px;padding:14px;cursor:pointer;box-shadow:0 4px 0 var(--forest-deep);transition:transform .1s ease}
   .btn-primary:active{transform:translateY(2px);box-shadow:0 2px 0 var(--forest-deep)}
   .mode-pick{width:100%;max-width:380px;display:flex;flex-direction:column;gap:14px;margin-top:8px}
+  .diff-pick{width:100%;max-width:380px;display:none;flex-direction:column;gap:10px;margin-top:4px}
+  .diff-pick.visible{display:flex}
+  .diff-pick h3{font-family:'Fraunces',serif;font-weight:900;font-size:16px;color:var(--forest-deep);margin:0;text-align:center}
+  .diff-row{display:flex;gap:8px}
+  .diff-btn{flex:1;font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:13px;border:1.5px solid var(--line);border-radius:12px;padding:11px 6px;cursor:pointer;background:#fbf8ef;color:var(--ink);transition:border-color .15s,background .15s,transform .1s;display:flex;flex-direction:column;align-items:center;gap:3px}
+  .diff-btn:hover{border-color:var(--leaf);transform:translateY(-1px)}
+  .diff-btn .d-ico{font-size:18px}
+  .diff-btn .d-name{font-size:12px;color:var(--forest-deep)}
+  .diff-btn .d-sub{font-size:10px;color:var(--ink-soft);font-weight:600;text-align:center;line-height:1.3}
+  .diff-btn.active{border-color:var(--leaf);background:#e7f1de}
+  .diff-btn.active .d-name{color:var(--correct)}
   .mode-card{display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;background:#fbf8ef;border:1.5px solid var(--line);border-radius:var(--r);box-shadow:0 8px 22px -14px var(--shadow),0 2px 0 var(--line);padding:22px 18px;cursor:pointer;transition:transform .12s ease,border-color .15s ease;font-family:inherit}
   .mode-card:hover{border-color:var(--leaf);transform:translateY(-2px)}
   .mode-card:active{transform:translateY(0)}
@@ -196,6 +207,27 @@
           <span class="mc-title">Birds</span>
           <span class="mc-sub">Identify PNW birds — fill a nest with eggs</span>
         </button>
+      </div>
+      <div class="diff-pick" id="diffPick">
+        <h3>Difficulty</h3>
+        <div class="diff-row">
+          <button class="diff-btn active" data-diff="easy">
+            <span class="d-ico">🌱</span>
+            <span class="d-name">Easy</span>
+            <span class="d-sub">Random options</span>
+          </button>
+          <button class="diff-btn" data-diff="medium">
+            <span class="d-ico">🌿</span>
+            <span class="d-name">Medium</span>
+            <span class="d-sub">Same family</span>
+          </button>
+          <button class="diff-btn" data-diff="hard">
+            <span class="d-ico">🌲</span>
+            <span class="d-name">Hard</span>
+            <span class="d-sub">Same genus</span>
+          </button>
+        </div>
+        <button class="btn-primary" id="startGameBtn" style="margin-top:4px">Let's go →</button>
       </div>
       <div class="userbar" style="justify-content:center;margin-top:18px">
         <span class="who">👤 <span id="whoNameMode">—</span></span>
@@ -597,7 +629,7 @@ const cfg=window.SPROUT_CONFIG||{};
 const configured = cfg.CLIENT_ID && cfg.COGNITO_DOMAIN && cfg.API_BASE && cfg.REDIRECT_URI
   && !/xxxx|XXXX|YOUR-/.test(cfg.CLIENT_ID+cfg.COGNITO_DOMAIN+cfg.API_BASE+cfg.REDIRECT_URI);
 
-let session={user:null,displayName:"",mode:"plants"};
+let session={user:null,displayName:"",mode:"plants",difficulty:"easy"};
 let progress={plants:blankStats(),birds:blankStats()};
 let state=progress.plants;
 function blankStats(){return {score:0,correct:0,attempts:0,streak:0,bestStreak:0};}
@@ -618,7 +650,11 @@ const MODES={
 };
 function M(){return MODES[session.mode];}
 
-function showScreen(id){if(id!=="gameScreen")stopBirdCall();["setupScreen","authScreen","modeScreen","gameScreen"].forEach(s=>$("#"+s).classList.toggle("active",s===id));}
+function showScreen(id){
+  if(id!=="gameScreen") stopBirdCall();
+  if(id==="modeScreen") $("#diffPick").classList.remove("visible");
+  ["setupScreen","authScreen","modeScreen","gameScreen"].forEach(s=>$("#"+s).classList.toggle("active",s===id));
+}
 
 /* ---------- Cognito OAuth2 (PKCE) ---------- */
 function b64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
@@ -707,7 +743,13 @@ async function onSignedIn(claims){
 }
 function chooseMode(mode){
   session.mode=mode;
-  state=progress[mode];
+  // Show difficulty picker instead of jumping straight into the game
+  const dp=$("#diffPick");
+  dp.classList.add("visible");
+  dp.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+function startGame(){
+  state=progress[session.mode];
   pool=[]; taxaSeen=[]; maxPage=null;
   applyModeTheme();
   saveState();
@@ -768,13 +810,7 @@ async function nextQuestion(){
     while(taxaSeen.length<4&&guard<5){await fetchPool();guard++;}
     if(!pool.length) throw new Error("empty");
     const answer=pool.pop();
-    const used=new Set([answer.label.toLowerCase()]),distractors=[];
-    for(const t of [...taxaSeen].sort(()=>Math.random()-0.5)){
-      if(distractors.length>=3) break;
-      if(t.id===answer.taxonId) continue;
-      const k=t.label.toLowerCase(); if(used.has(k)) continue;
-      used.add(k); distractors.push(t);
-    }
+    const distractors=await getDistractors(answer);
     if(distractors.length<3) throw new Error("variety");
     current={answer,options:[{id:answer.taxonId,label:answer.label},...distractors].sort(()=>Math.random()-0.5)};
     await preload(answer.photo); renderQuestion();
@@ -782,6 +818,76 @@ async function nextQuestion(){
     console.error("Sprout load error:",e);
     showError(e.message==="variety"?"Not enough variety for this filter — tap retry.":"Couldn't reach iNaturalist. Tap retry, or check your connection.");
   }
+}
+
+/* ---------- difficulty-aware distractors ---------- */
+function easyDistractors(answer){
+  const used=new Set([answer.label.toLowerCase()]),out=[];
+  for(const t of [...taxaSeen].sort(()=>Math.random()-0.5)){
+    if(out.length>=3) break;
+    if(t.id===answer.taxonId) continue;
+    const k=t.label.toLowerCase(); if(used.has(k)) continue;
+    used.add(k); out.push(t);
+  }
+  return out;
+}
+async function fetchRelatedSpecies(ancestorId){
+  // Fetch PNW observations of species that share this ancestor (family or genus taxon ID)
+  const base=buildQueryBase();
+  const r=await fetch(`${base}&taxon_id=${ancestorId}&per_page=80`);
+  if(!r.ok) return [];
+  const d=await r.json();
+  const out=[];
+  for(const o of (d.results||[])){
+    const t=o.taxon; if(!t||!o.photos||!o.photos.length) continue;
+    if(t.rank!=="species"&&t.rank!=="subspecies") continue;
+    const common=t.preferred_common_name?titleCase(t.preferred_common_name):t.name;
+    if(!out.find(x=>x.id===t.id)) out.push({id:t.id,label:common});
+  }
+  return out;
+}
+async function getAncestorId(taxonId,rank){
+  try{
+    const r=await fetch(`${API_INAT}/taxa/${taxonId}`);
+    const d=await r.json();
+    const t=d.results&&d.results[0]; if(!t||!t.ancestors) return null;
+    const a=t.ancestors.find(x=>x.rank===rank);
+    return a?a.id:null;
+  }catch(e){ return null; }
+}
+async function getDistractors(answer){
+  const diff=session.difficulty;
+  if(diff==="easy") return easyDistractors(answer);
+
+  // For medium (family) and hard (genus), fetch related taxa from iNaturalist
+  const rank = diff==="hard" ? "genus" : "family";
+  let ancestorId=null;
+
+  if(diff==="hard"){
+    // Genus is the first word of the scientific name — look it up directly
+    const genus=answer.sci.split(" ")[0];
+    try{
+      const r=await fetch(`${API_INAT}/taxa?q=${encodeURIComponent(genus)}&rank=genus&per_page=1`);
+      const d=await r.json(); if(d.results&&d.results[0]) ancestorId=d.results[0].id;
+    }catch(e){}
+  } else {
+    ancestorId=await getAncestorId(answer.taxonId,"family");
+  }
+
+  if(ancestorId){
+    const related=await fetchRelatedSpecies(ancestorId);
+    const used=new Set([answer.label.toLowerCase()]);
+    const out=[];
+    for(const t of related.sort(()=>Math.random()-0.5)){
+      if(out.length>=3) break;
+      if(t.id===answer.taxonId) continue;
+      const k=t.label.toLowerCase(); if(used.has(k)) continue;
+      used.add(k); out.push(t);
+    }
+    if(out.length>=3) return out;
+  }
+  // Fallback: not enough related species in PNW → use easy distractors
+  return easyDistractors(answer);
 }
 function preload(src){return new Promise(res=>{const i=new Image();i.onload=res;i.onerror=res;i.src=src;setTimeout(res,4500);});}
 function showLoader(on){$("#loader").style.display=on?"flex":"none";if(on)hide("#qbody");}
@@ -1112,6 +1218,12 @@ $("#logoutLink").onclick=logout;
 $("#logoutLinkMode").onclick=logout;
 $("#pickPlants").onclick=()=>chooseMode("plants");
 $("#pickBirds").onclick=()=>chooseMode("birds");
+document.querySelectorAll(".diff-btn").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".diff-btn").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");
+  session.difficulty=b.dataset.diff;
+});
+$("#startGameBtn").onclick=startGame;
 $("#switchModeLink").onclick=()=>showScreen("modeScreen");
 $("#retry").onclick=nextQuestion;
 $("#resetBtn").onclick=()=>{if(confirm(`Reset points, streak and your ${M().plural} for this guide? This can't be undone.`)){progress[session.mode]=blankStats();state=progress[session.mode];saveState();refreshStats();}};
