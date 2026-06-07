@@ -103,6 +103,16 @@
   .species .common{font-family:'Fraunces',serif;font-weight:900;font-size:19px;line-height:1.15;color:var(--forest-deep)}
   .species .sci{font-style:italic;color:var(--ink-soft);font-size:14px;margin-top:2px}
   .species .fam{display:inline-block;margin-top:9px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;background:var(--paper-2);border:1px solid var(--line);color:var(--ink-soft);padding:3px 9px;border-radius:999px}
+  .species.bird{display:flex;gap:13px;align-items:flex-start}
+  .species .info{flex:1;min-width:0}
+  .species.bird .fam{display:block;width:fit-content}
+  .species-photo{width:90px;height:90px;flex:none;border-radius:11px;object-fit:cover;border:1.5px solid var(--line);background:var(--paper-2)}
+  .species-photo.hidden{display:none}
+  .callbtn{display:inline-flex;align-items:center;gap:7px;margin-top:10px;font-family:'Hanken Grotesk',sans-serif;font-weight:800;font-size:13px;color:#fff;background:linear-gradient(180deg,var(--leaf-bright),var(--forest));border:none;border-radius:999px;padding:8px 15px;cursor:pointer;box-shadow:0 3px 0 var(--forest-deep);transition:transform .1s ease}
+  .callbtn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--forest-deep)}
+  .callbtn[hidden]{display:none}
+  .callbtn.loading{opacity:.65;cursor:default;box-shadow:0 3px 0 var(--forest-deep)}
+  .callbtn .ico{font-size:14px;line-height:1}
   .tip{font-size:14.5px;line-height:1.55}
   .tip h4{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--terracotta-deep);font-weight:800;margin-bottom:5px}
   .tip .wiki{margin-bottom:10px}
@@ -238,7 +248,7 @@
       <div class="feedback" id="feedback"></div>
       <div class="err" id="errBox"><p id="errMsg">Couldn't reach iNaturalist. Check your connection.</p><button id="retry">Try again</button></div>
     </div>
-    <div class="footer-note">Photos &amp; species data from <a href="https://www.inaturalist.org" target="_blank" rel="noopener">iNaturalist</a>. Notes from Wikipedia.</div>
+    <div class="footer-note">Photos, sounds &amp; species data from <a href="https://www.inaturalist.org" target="_blank" rel="noopener">iNaturalist</a>. Notes from Wikipedia.</div>
   </section>
 </div>
 
@@ -608,7 +618,7 @@ const MODES={
 };
 function M(){return MODES[session.mode];}
 
-function showScreen(id){["setupScreen","authScreen","modeScreen","gameScreen"].forEach(s=>$("#"+s).classList.toggle("active",s===id));}
+function showScreen(id){if(id!=="gameScreen")stopBirdCall();["setupScreen","authScreen","modeScreen","gameScreen"].forEach(s=>$("#"+s).classList.toggle("active",s===id));}
 
 /* ---------- Cognito OAuth2 (PKCE) ---------- */
 function b64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
@@ -751,6 +761,7 @@ function stripAttr(a){return a.replace(/\(c\)|©/g,"").trim().slice(0,60);}
 /* ---------- question flow ---------- */
 let current=null,answered=false;
 async function nextQuestion(){
+  stopBirdCall();
   answered=false; showLoader(true); hide("#feedback"); hide("#errBox");
   try{
     let guard=0;
@@ -808,9 +819,13 @@ function choose(opt,btn){
 }
 function revealFeedback(win,pts){
   const a=current.answer,fb=$("#feedback");
+  const isBird=session.mode==="birds";
+  const speciesBox=isBird
+    ?`<div class="species bird"><img class="species-photo hidden" id="speciesPhoto" alt="Photo of ${escapeHtml(a.label)}"/><div class="info"><div class="common">${escapeHtml(a.label)}</div><div class="sci">${escapeHtml(a.sci)}</div><button class="callbtn" id="callBtn" type="button" hidden></button><span class="fam" id="famTag">loading family…</span></div></div>`
+    :`<div class="species"><div class="common">${escapeHtml(a.label)}</div><div class="sci">${escapeHtml(a.sci)}</div><span class="fam" id="famTag">loading family…</span></div>`;
   fb.innerHTML=`
     <div class="verdict ${win?'win':'lose'}"><span>${win?'🌿 Correct!':'🍂 Not quite'}</span>${win?`<span class="pts">+${pts} pts</span>`:''}</div>
-    <div class="species"><div class="common">${escapeHtml(a.label)}</div><div class="sci">${escapeHtml(a.sci)}</div><span class="fam" id="famTag">loading family…</span></div>
+    ${speciesBox}
     <div class="tip"><h4>How to identify it</h4><div class="wiki" id="wikiText">Looking up field notes…</div>
       <div id="idTips" class="id-tips"><span style="font-size:13px;color:var(--ink-soft);font-style:italic">Loading ID tips…</span></div></div>
     <button class="next" id="nextBtn">Next →</button>`;
@@ -866,6 +881,15 @@ async function loadTaxonDetail(id){
     }
     if(!genusName&&t.name) genusName=t.name.split(" ")[0];
     const ft=$("#famTag");if(ft)ft.textContent=fam?("Family · "+fam):"";
+    if(session.mode==="birds"){
+      const sp=$("#speciesPhoto");
+      if(sp){
+        const dp=t.default_photo;
+        const url=(dp&&(dp.medium_url||dp.square_url||dp.url))||(current&&current.answer&&current.answer.photo)||"";
+        if(url){sp.onload=()=>sp.classList.remove("hidden");sp.src=url;}
+      }
+      loadBirdCall(id);
+    }
     const wt=$("#wikiText");
     const rawWiki=t.wikipedia_summary?stripTags(t.wikipedia_summary):"";
     const wikiUrl=t.wikipedia_url||"";
@@ -906,6 +930,42 @@ async function loadTaxonDetail(id){
     const ft=$("#famTag");if(ft)ft.textContent="";
     const el=$("#idTips");if(el)el.innerHTML=`<div class="id-tip"><span class="ico">🔍</span><div class="body"><span class="desc">Look for: leaf shape, bark texture, fruit or cones, and the overall silhouette.</span></div></div>`;
   }
+}
+/* ---------- bird call audio ---------- */
+const SOUND_LICENSES="cc0,cc-by,cc-by-nc,cc-by-sa,cc-by-nc-sa";
+let birdAudio=null;
+function stopBirdCall(){ if(birdAudio){try{birdAudio.pause();}catch(e){} birdAudio=null;} }
+async function loadBirdCall(id){
+  const btn=$("#callBtn"); if(!btn) return;
+  setCallLabel(btn,"🔎","Finding call…"); btn.classList.add("loading"); btn.disabled=true; btn.hidden=false;
+  let url="";
+  try{
+    const r=await fetch(`${API_INAT}/observations?taxon_id=${id}&sounds=true&sounds_license=${SOUND_LICENSES}&captive=false&per_page=1&order_by=votes&order=desc&locale=en`);
+    const d=await r.json();
+    const obs=d.results&&d.results[0];
+    const snd=obs&&obs.sounds&&obs.sounds.find(s=>s.file_url);
+    if(snd) url=snd.file_url;
+  }catch(e){}
+  if(!btn.isConnected) return;
+  if(!url){ btn.hidden=true; return; }
+  wireCallButton(btn,url);
+}
+function setCallLabel(btn,ico,text){ btn.innerHTML=`<span class="ico">${ico}</span><span>${text}</span>`; }
+function wireCallButton(btn,url){
+  btn.classList.remove("loading"); btn.disabled=false;
+  setCallLabel(btn,"▶","Play call");
+  const audio=new Audio(url); audio.preload="none";
+  audio.addEventListener("ended",()=>setCallLabel(btn,"▶","Play call"));
+  audio.addEventListener("error",()=>{ if(btn.isConnected){btn.disabled=true;setCallLabel(btn,"🔇","Call unavailable");} });
+  btn.onclick=()=>{
+    if(audio.paused){
+      if(birdAudio&&birdAudio!==audio){try{birdAudio.pause();}catch(e){}}
+      birdAudio=audio;
+      audio.play().then(()=>setCallLabel(btn,"⏸","Pause call")).catch(()=>setCallLabel(btn,"▶","Play call"));
+    }else{
+      audio.pause(); setCallLabel(btn,"▶","Play call");
+    }
+  };
 }
 function stripTags(h){const d=document.createElement("div");d.innerHTML=h;return (d.textContent||"").trim();}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
