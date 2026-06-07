@@ -832,17 +832,20 @@ function easyDistractors(answer){
   return out;
 }
 async function fetchRelatedSpecies(ancestorId){
-  // species_counts returns one entry per species — no deduplication needed
+  // species_counts returns one entry per species with observation count.
+  // Require count >= 5 so rare stragglers (e.g. Blue Jay in PNW) are excluded.
   const {nelat,nelng,swlat,swlng}=PNW;
-  const url=`${API_INAT}/observations/species_counts?taxon_id=${ancestorId}&quality_grade=research&photos=true&nelat=${nelat}&nelng=${nelng}&swlat=${swlat}&swlng=${swlng}&per_page=30`;
+  const url=`${API_INAT}/observations/species_counts?taxon_id=${ancestorId}&quality_grade=research&photos=true&nelat=${nelat}&nelng=${nelng}&swlat=${swlat}&swlng=${swlng}&per_page=50`;
   try{
     const r=await fetch(url); if(!r.ok) return [];
     const d=await r.json();
-    return (d.results||[]).map(o=>{
-      const t=o.taxon;
-      const common=t.preferred_common_name?titleCase(t.preferred_common_name):t.name;
-      return {id:t.id,label:common};
-    });
+    return (d.results||[])
+      .filter(o=>o.count>=5)
+      .map(o=>{
+        const t=o.taxon;
+        const common=t.preferred_common_name?titleCase(t.preferred_common_name):t.name;
+        return {id:t.id,label:common};
+      });
   }catch(e){ return []; }
 }
 async function getAncestorId(taxonId,rank){
